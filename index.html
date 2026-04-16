@@ -374,6 +374,19 @@
       margin: 0;
     }
 
+    .btn-more-like {
+      width: 100%;
+      margin-top: 0.45rem;
+      font-size: 0.82rem;
+      font-weight: 600;
+      padding: 0.45rem 0.65rem;
+    }
+
+    .btn-more-like:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
     .empty {
       text-align: center;
       color: var(--muted);
@@ -923,6 +936,9 @@
       gridEl.querySelectorAll(".btn-redo").forEach((b) => {
         b.disabled = loading;
       });
+      gridEl.querySelectorAll(".btn-more-like").forEach((b) => {
+        b.disabled = loading;
+      });
       gridEl.querySelectorAll(".btn-heart").forEach((b) => {
         b.disabled = loading;
       });
@@ -967,6 +983,7 @@
               <button type="button" class="btn-play" data-track-index="${i}" aria-label="Play 30-second preview" title="Play preview">▶</button>
               <button type="button" class="btn-secondary btn-redo">Redo</button>
             </div>
+            <button type="button" class="btn-secondary btn-more-like">More like this</button>
           </div>
         `;
         article.querySelector(".card-title").textContent = song.title || "—";
@@ -980,6 +997,12 @@
           `Replace track ${i + 1} with a different song for the same prompt`,
         );
         redoBtn.addEventListener("click", () => redoTrack(i));
+        const moreLikeBtn = article.querySelector(".btn-more-like");
+        moreLikeBtn.setAttribute(
+          "aria-label",
+          `Replace the playlist with 8 tracks similar to track ${i + 1}, including this song`,
+        );
+        moreLikeBtn.addEventListener("click", () => moreLikeThis(i));
         const heartBtn = article.querySelector(".btn-heart");
         heartBtn.addEventListener("click", () => toggleFavoriteAtIndex(i));
         gridEl.appendChild(article);
@@ -1030,6 +1053,61 @@
         showError(e.message || "Something went wrong.");
         currentSongs = [];
         gridEl.innerHTML = "";
+      } finally {
+        setUiBusy(false);
+      }
+    }
+
+    async function moreLikeThis(index) {
+      if (!currentSongs.length || index < 0 || index >= currentSongs.length) {
+        return;
+      }
+      const seed = currentSongs[index];
+      stopPlayback();
+      setUiBusy(true, "Finding similar tracks…");
+      try {
+        const body = {
+          seed: { title: seed.title, artist: seed.artist },
+          seed_why: seed.why || "",
+        };
+        const ctx = promptEl.value.trim();
+        if (ctx) {
+          body.context_prompt = ctx;
+        }
+        const favs = favoritesForApi();
+        if (favs.length) {
+          body.favorites = favs;
+        }
+        const res = await fetch("/api/recommend/similar", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          const detail = data.detail;
+          const msg =
+            typeof detail === "string"
+              ? detail
+              : Array.isArray(detail)
+                ? detail.map((d) => d.msg || d).join(" ")
+                : res.statusText || "Request failed";
+          throw new Error(msg);
+        }
+        const songs = data.songs || [];
+        if (songs.length !== 8) {
+          throw new Error("Expected 8 tracks from similar-songs request.");
+        }
+        renderCards(songs);
+        const ref = `${seed.title} — ${seed.artist}`.trim() || "your pick";
+        let msg = `8 tracks similar to ${ref} (includes your selected track)`;
+        if (favs.length) {
+          msg += " · used your favorites as taste context";
+        }
+        statusEl.textContent = msg;
+        statusEl.classList.remove("error");
+      } catch (e) {
+        showError(e.message || "Something went wrong.");
       } finally {
         setUiBusy(false);
       }

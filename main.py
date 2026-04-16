@@ -119,6 +119,24 @@ class ReplaceSongRequest(BaseModel):
     )
 
 
+class SimilarFromTrackRequest(BaseModel):
+    seed: SongRef
+    seed_why: str = Field(
+        default="",
+        max_length=2000,
+        description="Optional 'why' text from the current card for the seed track.",
+    )
+    context_prompt: str = Field(
+        default="",
+        max_length=4000,
+        description="Optional original user request for extra context.",
+    )
+    favorites: list[SongRef] = Field(
+        default_factory=list,
+        description="Optional saved tracks to steer taste.",
+    )
+
+
 def _trim_favorites(favs: list[SongRef], *, limit: int = 40) -> list[SongRef]:
     out = [f for f in favs[:limit] if f.title.strip() or f.artist.strip()]
     return out
@@ -247,6 +265,126 @@ async def recommend(body: RecommendRequest) -> dict:
         normalized.append(normalize_song_item(item))
 
     return {"songs": normalized}
+
+
+@app.post("/api/recommend/similar")
+async def recommend_similar(body: SimilarFromTrackRequest) -> dict:
+    st = body.seed.title.strip()
+    sa = body.seed.artist.strip()
+    if not st and not sa:
+        raise HTTPException(
+            status_code=400,
+            detail="Seed track must include a title or artist.",
+        )
+
+    client = get_client()
+    seed_key = track_key(st, sa)
+    seed_norm = normalize_song_item(
+        {
+            "title": st or "Unknown",
+            "artist": sa or "Unknown",
+            "why": body.seed_why.strip() or "Your selected track.",
+        }
+    )
+
+    system = (
+        "You are a music expert. Reply with ONLY valid JSON, no markdown or explanation. "
+        "Return a JSON array of exactly 7 objects. Each object must have: "
+        '"title" (string), "artist" (string), "why" (one short sentence explaining the similarity). '
+        "Choose real, well-known songs that are musically or thematically similar to the reference track "
+        "(same genre, era, production style, collaborators, or clear sonic kinship). "
+        f'Do not include "{seed_norm["title"]}" by {seed_norm["artist"]} or any obvious duplicate title+artist.'
+    )
+    user = (
+        f'The reference track is "{seed_norm["title"]}" by {seed_norm["artist"]}.\n'
+        "Suggest 7 other songs a listener would enjoy if they love that track."
+    )
+    cp = body.context_prompt.strip()
+    if cp:
+        user += f'\n\nFor additional context, the user\'s earlier request was: "{cp}"'
+    favs = _trim_favorites(body.favorites)
+    if favs:
+        user += favorites_context_block(favs)
+
+    parse_errors: list[str] = []
+    similar_songs: list[dict] | None = None
+    duplicate_retries = 0
+    max_duplicate_retries = 3
+
+    while duplicate_retries <= max_duplicate_retries:
+        base_messages: list[dict] = [
+            {"role": "system", "content": system},
+            {"role": "user", "content": user},
+        ]
+        if duplicate_retries > 0:
+            base_messages.append(
+                {
+                    "role": "user",
+                    "content": (
+                        "Some suggestions duplicated the reference track or each other, "
+                        "or you returned the wrong count. Reply again with ONLY a JSON array "
+                        f'of exactly 7 objects. None may be "{seed_norm["title"]}" by '
+                        f'{seed_norm["artist"]}. All 7 must be distinct real songs.'
+                    ),
+                }
+            )
+
+        songs: list[dict] | None = None
+        for attempt in range(3):
+            messages = list(base_messages)
+            if attempt > 0:
+                messages.append(
+                    {
+                        "role": "user",
+                        "content": (
+                            "Your previous reply was not valid JSON. "
+                            "Reply again with ONLY a valid JSON array of exactly 7 objects."
+                        ),
+                    }
+                )
+
+            content = request_recommendations(client, messages)
+            try:
+                parsed = parse_song_json(content)
+                songs = [normalize_song_item(x) for x in parsed if isinstance(x, dict)]
+                if len(songs) < 7:
+                    raise ValueError(f"Expected at least 7 songs, got {len(songs)}")
+                songs = songs[:7]
+                break
+            except (json.JSONDecodeError, ValueError) as e:
+                parse_errors.append(str(e))
+
+        if songs is None:
+            raise HTTPException(
+                status_code=502,
+                detail="Could not parse model output as JSON after retries: "
+                + " | ".join(parse_errors),
+            )
+
+        seen: set[tuple[str, str]] = {seed_key}
+        filtered: list[dict] = []
+        for s in songs:
+            k = track_key(s["title"], s["artist"])
+            if k == seed_key or k in seen:
+                continue
+            seen.add(k)
+            filtered.append(s)
+
+        if len(filtered) == 7:
+            similar_songs = filtered
+            break
+
+        duplicate_retries += 1
+        parse_errors = []
+
+    if similar_songs is None:
+        raise HTTPException(
+            status_code=502,
+            detail="Could not get 7 distinct similar songs after several tries; try again.",
+        )
+
+    out = [seed_norm] + similar_songs
+    return {"songs": out}
 
 
 @app.post("/api/recommend/one")

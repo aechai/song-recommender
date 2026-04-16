@@ -27,7 +27,7 @@ A FastAPI web app that recommends songs using Together AI.
 1. Open a terminal in the project folder:
 
 ```powershell
-cd "C:\Users\ssadi\OneDrive\Desktop\song-reccomender"
+cd "...\song-reccomender"
 ```
 
 2. Install dependencies:
