@@ -269,6 +269,51 @@
       border-radius: 12px;
     }
 
+    .card.is-playing {
+      border-color: rgba(124, 92, 255, 0.5);
+      box-shadow: 0 0 0 1px rgba(124, 92, 255, 0.2);
+    }
+
+    .playlist-bar {
+      margin-bottom: 1.25rem;
+    }
+
+    .playlist-bar.hidden {
+      display: none;
+    }
+
+    .playlist-bar-inner {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1rem 1.15rem;
+    }
+
+    .playlist-now {
+      margin: 0 0 0.75rem;
+      font-size: 0.92rem;
+      color: var(--muted);
+    }
+
+    .playlist-bar-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      align-items: center;
+    }
+
+    .playlist-bar-row button {
+      font-size: 0.88rem;
+      padding: 0.55rem 1rem;
+    }
+
+    .playlist-hint {
+      margin: 0.65rem 0 0;
+      font-size: 0.78rem;
+      color: #6b6f7a;
+      line-height: 1.4;
+    }
+
     @media (prefers-reduced-motion: reduce) {
       button,
       .card,
@@ -302,6 +347,21 @@
     </section>
 
     <section id="results-section" aria-label="Results">
+      <div id="playlist-bar" class="playlist-bar hidden" aria-label="Preview playlist">
+        <div class="playlist-bar-inner">
+          <p class="playlist-now" id="playlistNow"></p>
+          <div class="playlist-bar-row">
+            <button type="button" id="playlistPlayAll">Preview playlist</button>
+            <button type="button" class="btn-secondary" id="playlistPrev">Previous</button>
+            <button type="button" class="btn-secondary" id="playlistNext">Next</button>
+            <button type="button" class="btn-secondary" id="playlistStop">Stop</button>
+          </div>
+          <p class="playlist-hint">
+            Plays your list in order using ~30-second previews from Apple’s catalog (same as each track’s Play).
+            Full songs require a streaming service (e.g. Spotify or Apple Music) with login and their APIs.
+          </p>
+        </div>
+      </div>
       <div class="grid" id="grid"></div>
     </section>
   </div>
@@ -317,22 +377,110 @@
     let formBusy = false;
     let playingIndex = null;
     let playLoadingIndex = null;
+    let playlistMode = false;
     const previewUrlCache = new Map();
     const audioPlayer = new Audio();
     audioPlayer.preload = "none";
 
-    audioPlayer.addEventListener("ended", () => {
+    audioPlayer.addEventListener("ended", async () => {
+      if (playlistMode && playingIndex !== null) {
+        const next = playingIndex + 1;
+        if (next < currentSongs.length) {
+          await playTrackAt(next, { fromPlaylist: true });
+          return;
+        }
+        playlistMode = false;
+        playingIndex = null;
+        statusEl.textContent = "Playlist finished.";
+        statusEl.classList.remove("error");
+        updatePlayButtons();
+        updatePlaylistBar();
+        return;
+      }
       playingIndex = null;
       updatePlayButtons();
+      updatePlaylistBar();
     });
 
+    function highlightPlayingCard() {
+      gridEl.querySelectorAll(".card").forEach((card, i) => {
+        card.classList.toggle("is-playing", playingIndex === i || playLoadingIndex === i);
+      });
+    }
+
     function stopPlayback() {
+      playlistMode = false;
       audioPlayer.pause();
       audioPlayer.removeAttribute("src");
       audioPlayer.load();
       playingIndex = null;
       playLoadingIndex = null;
       updatePlayButtons();
+      updatePlaylistBar();
+    }
+
+    async function getOrFetchPreviewUrl(song) {
+      const key = `${song.artist}|${song.title}`;
+      let url = previewUrlCache.get(key);
+      if (url) return url;
+      const res = await fetch(
+        `/api/preview?title=${encodeURIComponent(song.title)}&artist=${encodeURIComponent(song.artist)}`,
+      );
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const msg =
+          typeof data.detail === "string"
+            ? data.detail
+            : "Preview not available.";
+        throw new Error(msg);
+      }
+      url = data.preview_url;
+      if (!url) throw new Error("Preview not available.");
+      previewUrlCache.set(key, url);
+      return url;
+    }
+
+    async function playTrackAt(index, opts = {}) {
+      const fromPlaylist = opts.fromPlaylist === true;
+      if (formBusy) return;
+      const song = currentSongs[index];
+      if (!song) return;
+
+      playLoadingIndex = index;
+      updatePlayButtons();
+      updatePlaylistBar();
+
+      let url;
+      try {
+        url = await getOrFetchPreviewUrl(song);
+      } catch (e) {
+        playLoadingIndex = null;
+        updatePlayButtons();
+        if (fromPlaylist && index + 1 < currentSongs.length) {
+          statusEl.textContent = `Skipping track ${index + 1} (no preview)…`;
+          statusEl.classList.remove("error");
+          await playTrackAt(index + 1, { fromPlaylist: true });
+          return;
+        }
+        statusEl.textContent = e.message || "Preview not available.";
+        statusEl.classList.remove("error");
+        updatePlaylistBar();
+        return;
+      }
+
+      playLoadingIndex = null;
+      audioPlayer.src = url;
+      playingIndex = index;
+      try {
+        await audioPlayer.play();
+        statusEl.classList.remove("error");
+      } catch (_) {
+        playingIndex = null;
+        statusEl.textContent = "Could not play audio in this browser.";
+        statusEl.classList.add("error");
+      }
+      updatePlayButtons();
+      updatePlaylistBar();
     }
 
     function updatePlayButtons() {
@@ -353,6 +501,67 @@
         btn.setAttribute("aria-label", playing ? "Pause preview" : "Play 30-second preview");
         btn.setAttribute("aria-pressed", playing ? "true" : "false");
       });
+      highlightPlayingCard();
+    }
+
+    function updatePlaylistBar() {
+      const bar = document.getElementById("playlist-bar");
+      const now = document.getElementById("playlistNow");
+      const btnPlayAll = document.getElementById("playlistPlayAll");
+      const btnPrev = document.getElementById("playlistPrev");
+      const btnNext = document.getElementById("playlistNext");
+      const btnStop = document.getElementById("playlistStop");
+      if (!bar || !now || !btnPlayAll || !btnPrev || !btnNext || !btnStop) return;
+
+      if (!currentSongs.length) {
+        bar.classList.add("hidden");
+        return;
+      }
+      bar.classList.remove("hidden");
+
+      if (playlistMode && playLoadingIndex !== null) {
+        now.textContent = "Loading preview…";
+      } else if (playlistMode && playingIndex !== null) {
+        now.textContent = `Playlist: track ${playingIndex + 1} of ${currentSongs.length} (~30s previews)`;
+      } else {
+        now.textContent = `${currentSongs.length} tracks — use Preview playlist to hear them in order`;
+      }
+
+      btnPlayAll.disabled = formBusy;
+      btnPrev.disabled =
+        formBusy || !playlistMode || playingIndex === null || playingIndex <= 0;
+      btnNext.disabled =
+        formBusy ||
+        !playlistMode ||
+        playingIndex === null ||
+        playingIndex >= currentSongs.length - 1;
+      btnStop.disabled = formBusy || (playingIndex === null && playLoadingIndex === null);
+    }
+
+    async function startPlaylist() {
+      if (formBusy || !currentSongs.length) return;
+      audioPlayer.pause();
+      audioPlayer.removeAttribute("src");
+      audioPlayer.load();
+      playingIndex = null;
+      playLoadingIndex = null;
+      playlistMode = true;
+      updatePlayButtons();
+      await playTrackAt(0, { fromPlaylist: true });
+    }
+
+    async function playlistNext() {
+      if (formBusy || !playlistMode || playingIndex === null) return;
+      if (playingIndex < currentSongs.length - 1) {
+        await playTrackAt(playingIndex + 1, { fromPlaylist: true });
+      }
+    }
+
+    async function playlistPrev() {
+      if (formBusy || !playlistMode || playingIndex === null) return;
+      if (playingIndex > 0) {
+        await playTrackAt(playingIndex - 1, { fromPlaylist: true });
+      }
     }
 
     async function togglePlay(index) {
@@ -363,6 +572,7 @@
       if (playingIndex === index && !audioPlayer.paused) {
         audioPlayer.pause();
         updatePlayButtons();
+        updatePlaylistBar();
         return;
       }
 
@@ -374,60 +584,15 @@
           /* autoplay / decode errors */
         }
         updatePlayButtons();
+        updatePlaylistBar();
         return;
       }
 
+      playlistMode = false;
       if (playingIndex !== null && playingIndex !== index) {
         audioPlayer.pause();
       }
-
-      const key = `${song.artist}|${song.title}`;
-      let url = previewUrlCache.get(key);
-      if (!url) {
-        playLoadingIndex = index;
-        updatePlayButtons();
-        try {
-          const res = await fetch(
-            `/api/preview?title=${encodeURIComponent(song.title)}&artist=${encodeURIComponent(song.artist)}`,
-          );
-          const data = await res.json().catch(() => ({}));
-          if (!res.ok) {
-            const msg =
-              typeof data.detail === "string"
-                ? data.detail
-                : "Preview not available.";
-            statusEl.textContent = msg;
-            statusEl.classList.remove("error");
-            return;
-          }
-          url = data.preview_url;
-          if (!url) {
-            statusEl.textContent = "Preview not available.";
-            statusEl.classList.remove("error");
-            return;
-          }
-          previewUrlCache.set(key, url);
-        } catch (e) {
-          statusEl.textContent = e.message || "Preview not available.";
-          statusEl.classList.remove("error");
-          return;
-        } finally {
-          playLoadingIndex = null;
-          updatePlayButtons();
-        }
-      }
-
-      audioPlayer.src = url;
-      playingIndex = index;
-      try {
-        await audioPlayer.play();
-        statusEl.classList.remove("error");
-      } catch (_) {
-        playingIndex = null;
-        statusEl.textContent = "Could not play audio in this browser.";
-        statusEl.classList.add("error");
-      }
-      updatePlayButtons();
+      await playTrackAt(index, { fromPlaylist: false });
     }
 
     function pick(arr) {
@@ -522,6 +687,7 @@
         statusEl.classList.remove("error");
       }
       updatePlayButtons();
+      updatePlaylistBar();
     }
 
     function showError(msg) {
@@ -538,6 +704,7 @@
       gridEl.innerHTML = "";
       if (!currentSongs.length) {
         gridEl.innerHTML = '<div class="empty">No songs returned. Try a different prompt.</div>';
+        updatePlaylistBar();
         return;
       }
       currentSongs.forEach((song, i) => {
@@ -568,6 +735,7 @@
         redoBtn.addEventListener("click", () => redoTrack(i));
         gridEl.appendChild(article);
       });
+      updatePlaylistBar();
     }
 
     async function fetchRecommendations() {
@@ -680,6 +848,11 @@
         fetchRecommendations();
       }
     });
+
+    document.getElementById("playlistPlayAll").addEventListener("click", startPlaylist);
+    document.getElementById("playlistPrev").addEventListener("click", playlistPrev);
+    document.getElementById("playlistNext").addEventListener("click", playlistNext);
+    document.getElementById("playlistStop").addEventListener("click", stopPlayback);
   </script>
 </body>
 </html>
