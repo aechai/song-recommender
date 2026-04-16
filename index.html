@@ -186,6 +186,41 @@
       color: var(--muted);
     }
 
+    .favorites-opt-row {
+      margin-top: 0.75rem;
+      padding-top: 0.85rem;
+      border-top: 1px solid var(--border);
+    }
+
+    .favorites-opt-row.favorites-opt-disabled {
+      opacity: 0.55;
+    }
+
+    .favorites-opt-label {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.55rem;
+      font-size: 0.92rem;
+      color: var(--text);
+      cursor: pointer;
+      font-weight: 500;
+    }
+
+    .favorites-opt-label input {
+      margin-top: 0.2rem;
+      accent-color: var(--accent);
+      width: 1.05rem;
+      height: 1.05rem;
+      flex-shrink: 0;
+    }
+
+    .favorites-opt-hint {
+      margin: 0.45rem 0 0 1.65rem;
+      font-size: 0.8rem;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+
     .status {
       font-size: 0.9rem;
       min-height: 1.4em;
@@ -421,6 +456,16 @@
         id="prompt"
         placeholder="e.g. Late-night synth-pop with dreamy vocals, similar to The Weeknd but more upbeat…"
       ></textarea>
+      <div class="favorites-opt-row favorites-opt-disabled" id="useFavoritesWrap">
+        <label class="favorites-opt-label" for="useFavorites">
+          <input type="checkbox" id="useFavorites" disabled />
+          <span>Use my saved favorites as taste context (<span id="useFavoritesCount">0</span>)</span>
+        </label>
+        <p class="favorites-opt-hint">
+          When checked, your ♥ list (title and artist, up to 40 tracks) is sent with your prompt so picks
+          match your taste. Add favorites from results or the favorites page.
+        </p>
+      </div>
       <div class="row">
         <button type="button" id="submit">Get recommendations</button>
         <button type="button" class="btn-secondary" id="randomPrompt" aria-label="Fill with a random playlist idea">
@@ -498,6 +543,31 @@
       if (favoritesNavCountEl) {
         favoritesNavCountEl.textContent = String(favorites.length);
       }
+      const useCountEl = document.getElementById("useFavoritesCount");
+      if (useCountEl) {
+        useCountEl.textContent = String(favorites.length);
+      }
+      const useWrap = document.getElementById("useFavoritesWrap");
+      const useCb = document.getElementById("useFavorites");
+      if (useWrap && useCb) {
+        const has = favorites.length > 0;
+        useCb.disabled = !has;
+        useWrap.classList.toggle("favorites-opt-disabled", !has);
+        if (!has) {
+          useCb.checked = false;
+        }
+      }
+    }
+
+    function favoritesForApi() {
+      const useCb = document.getElementById("useFavorites");
+      if (!useCb || !useCb.checked || !favorites.length) {
+        return [];
+      }
+      return favorites.map((f) => ({
+        title: String(f.title || ""),
+        artist: String(f.artist || ""),
+      }));
     }
 
     function updateHeartButtons() {
@@ -928,10 +998,15 @@
       stopPlayback();
       setUiBusy(true, "Fetching recommendations…");
       try {
+        const body = { prompt };
+        const favs = favoritesForApi();
+        if (favs.length) {
+          body.favorites = favs;
+        }
         const res = await fetch("/api/recommend", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ prompt }),
+          body: JSON.stringify(body),
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) {
@@ -945,7 +1020,11 @@
           throw new Error(msg);
         }
         renderCards(data.songs || []);
-        statusEl.textContent = `Showing ${(data.songs || []).length} tracks`;
+        let msg = `Showing ${(data.songs || []).length} tracks`;
+        if (favs.length) {
+          msg += " · used your favorites as taste context";
+        }
+        statusEl.textContent = msg;
         statusEl.classList.remove("error");
       } catch (e) {
         showError(e.message || "Something went wrong.");
@@ -975,14 +1054,19 @@
 
       setUiBusy(true, "Finding a different track…");
       try {
+        const redoBody = {
+          prompt,
+          replace: { title: replace.title, artist: replace.artist },
+          others: others.map((s) => ({ title: s.title, artist: s.artist })),
+        };
+        const redoFavs = favoritesForApi();
+        if (redoFavs.length) {
+          redoBody.favorites = redoFavs;
+        }
         const res = await fetch("/api/recommend/one", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            prompt,
-            replace: { title: replace.title, artist: replace.artist },
-            others: others.map((s) => ({ title: s.title, artist: s.artist })),
-          }),
+          body: JSON.stringify(redoBody),
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) {

@@ -92,23 +92,50 @@ def request_recommendations(client: Together, messages: list[dict]) -> str:
     )
 
 
+class SongRef(BaseModel):
+    title: str = ""
+    artist: str = ""
+
+
 class RecommendRequest(BaseModel):
     prompt: str = Field(
         ...,
         min_length=1,
         description="What the user wants (mood, genre, similar artists, etc.)",
     )
-
-
-class SongRef(BaseModel):
-    title: str = ""
-    artist: str = ""
+    favorites: list[SongRef] = Field(
+        default_factory=list,
+        description="Optional saved tracks to steer taste (title + artist).",
+    )
 
 
 class ReplaceSongRequest(BaseModel):
     prompt: str = Field(..., min_length=1)
     replace: SongRef
     others: list[SongRef] = Field(default_factory=list)
+    favorites: list[SongRef] = Field(
+        default_factory=list,
+        description="Optional saved tracks to steer taste when replacing one pick.",
+    )
+
+
+def _trim_favorites(favs: list[SongRef], *, limit: int = 40) -> list[SongRef]:
+    out = [f for f in favs[:limit] if f.title.strip() or f.artist.strip()]
+    return out
+
+
+def favorites_context_block(favs: list[SongRef]) -> str:
+    lines = [f'- "{f.title.strip()}" by {f.artist.strip()}' for f in favs]
+    if not lines:
+        return ""
+    return (
+        "\n\nThe user saved these favorite tracks (infer genres, moods, eras, and similar artists):"
+        "\n"
+        + "\n".join(lines)
+        + "\n\nUse them as taste signals. Your picks must fit the request above and align with this profile. "
+        "Do not output the exact same title+artist as any favorite listed above unless the user explicitly "
+        "asked for those tracks."
+    )
 
 
 @app.get("/")
@@ -174,7 +201,10 @@ async def recommend(body: RecommendRequest) -> dict:
         '"title" (string), "artist" (string), "why" (one short sentence explaining the pick). '
         "Choose real, well-known songs that fit the user's request."
     )
+    favs = _trim_favorites(body.favorites)
     user = f"Song recommendations for: {body.prompt}"
+    if favs:
+        user += favorites_context_block(favs)
 
     parse_errors = []
     songs = None
@@ -225,6 +255,9 @@ async def recommend_one(body: ReplaceSongRequest) -> dict:
     other_keys: set[tuple[str, str]] = {
         track_key(o.title, o.artist) for o in body.others if o.title or o.artist
     }
+    other_keys |= {
+        track_key(f.title, f.artist) for f in _trim_favorites(body.favorites)
+    }
     avoid_lines = []
     for o in body.others:
         if o.title.strip() or o.artist.strip():
@@ -248,6 +281,9 @@ async def recommend_one(body: ReplaceSongRequest) -> dict:
         f'Do not suggest "{body.replace.title}" by {body.replace.artist} again.'
         f"{avoid_block}"
     )
+    favs = _trim_favorites(body.favorites)
+    if favs:
+        user += favorites_context_block(favs)
 
     parse_errors: list[str] = []
     duplicate_retries = 0
