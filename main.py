@@ -3,8 +3,9 @@ import os
 import re
 from pathlib import Path
 
+import httpx
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 from together import Together
@@ -14,6 +15,8 @@ load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent
 MODEL_ID = "meta-llama/Llama-3-70b-chat-hf"
 FALLBACK_MODEL_ID = "meta-llama/Llama-3.3-70B-Instruct-Turbo"
+ITUNES_SEARCH_URL = "https://itunes.apple.com/search"
+ITUNES_HEADERS = {"User-Agent": "SongRecommender/1.0"}
 
 app = FastAPI(title="Song Recommender")
 
@@ -111,6 +114,50 @@ class ReplaceSongRequest(BaseModel):
 @app.get("/")
 async def serve_index() -> FileResponse:
     return FileResponse(BASE_DIR / "index.html")
+
+
+@app.get("/api/preview")
+async def preview(
+    title: str = Query(default="", max_length=220),
+    artist: str = Query(default="", max_length=220),
+) -> dict:
+    """Return an iTunes ~30s preview URL for the track (Apple Search API, no API key)."""
+    t = title.strip()
+    a = artist.strip()
+    if not t and not a:
+        raise HTTPException(
+            status_code=400,
+            detail="Provide at least a title or artist.",
+        )
+    term = f"{a} {t}".strip()
+    params = {
+        "term": term,
+        "media": "music",
+        "entity": "song",
+        "limit": "25",
+    }
+    try:
+        async with httpx.AsyncClient(timeout=20.0) as client:
+            r = await client.get(
+                ITUNES_SEARCH_URL,
+                params=params,
+                headers=ITUNES_HEADERS,
+            )
+        r.raise_for_status()
+    except httpx.HTTPError as e:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Could not reach iTunes lookup: {e!s}",
+        ) from e
+    data = r.json()
+    for track in data.get("results", []):
+        url = track.get("previewUrl")
+        if isinstance(url, str) and url.startswith("http"):
+            return {"preview_url": url}
+    raise HTTPException(
+        status_code=404,
+        detail="No preview audio found for this track.",
+    )
 
 
 @app.post("/api/recommend")

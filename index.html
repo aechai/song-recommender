@@ -218,11 +218,46 @@
       padding-top: 0.75rem;
     }
 
-    .card .btn-redo {
-      width: 100%;
+    .card-actions-row {
+      display: flex;
+      gap: 0.5rem;
+      align-items: stretch;
+    }
+
+    .card-actions-row .btn-play {
+      flex: 1.15;
+      font-family: inherit;
+      font-weight: 600;
+      font-size: 0.85rem;
+      padding: 0.5rem 0.75rem;
+      margin: 0;
+      border-radius: 999px;
+      border: none;
+      cursor: pointer;
+      background: linear-gradient(135deg, var(--accent), #5b8cff);
+      color: #fff;
+      box-shadow: 0 6px 18px rgba(124, 92, 255, 0.28);
+      transition: transform 0.12s, filter 0.12s, opacity 0.12s;
+    }
+
+    .card-actions-row .btn-play:hover:not(:disabled) {
+      filter: brightness(1.06);
+      transform: translateY(-1px);
+    }
+
+    .card-actions-row .btn-play:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .card-actions-row .btn-redo {
+      flex: 1;
+      width: auto;
+      min-width: 0;
       font-size: 0.85rem;
       font-weight: 600;
-      padding: 0.5rem 0.9rem;
+      padding: 0.5rem 0.75rem;
       margin: 0;
     }
 
@@ -236,7 +271,8 @@
 
     @media (prefers-reduced-motion: reduce) {
       button,
-      .card {
+      .card,
+      .card-actions-row .btn-play {
         transition: none;
       }
     }
@@ -278,6 +314,121 @@
     const gridEl = document.getElementById("grid");
 
     let currentSongs = [];
+    let formBusy = false;
+    let playingIndex = null;
+    let playLoadingIndex = null;
+    const previewUrlCache = new Map();
+    const audioPlayer = new Audio();
+    audioPlayer.preload = "none";
+
+    audioPlayer.addEventListener("ended", () => {
+      playingIndex = null;
+      updatePlayButtons();
+    });
+
+    function stopPlayback() {
+      audioPlayer.pause();
+      audioPlayer.removeAttribute("src");
+      audioPlayer.load();
+      playingIndex = null;
+      playLoadingIndex = null;
+      updatePlayButtons();
+    }
+
+    function updatePlayButtons() {
+      gridEl.querySelectorAll(".btn-play").forEach((btn) => {
+        const idx = parseInt(btn.dataset.trackIndex, 10);
+        if (Number.isNaN(idx)) return;
+        if (playLoadingIndex === idx) {
+          btn.textContent = "Loading…";
+          btn.disabled = true;
+          btn.setAttribute("aria-busy", "true");
+          btn.setAttribute("aria-label", "Loading preview");
+          return;
+        }
+        btn.removeAttribute("aria-busy");
+        btn.disabled = formBusy;
+        const playing = playingIndex === idx && !audioPlayer.paused;
+        btn.textContent = playing ? "Pause" : "Play";
+        btn.setAttribute("aria-label", playing ? "Pause preview" : "Play 30-second preview");
+        btn.setAttribute("aria-pressed", playing ? "true" : "false");
+      });
+    }
+
+    async function togglePlay(index) {
+      if (formBusy) return;
+      const song = currentSongs[index];
+      if (!song) return;
+
+      if (playingIndex === index && !audioPlayer.paused) {
+        audioPlayer.pause();
+        updatePlayButtons();
+        return;
+      }
+
+      if (playingIndex === index && audioPlayer.paused && audioPlayer.src) {
+        try {
+          await audioPlayer.play();
+          statusEl.classList.remove("error");
+        } catch (_) {
+          /* autoplay / decode errors */
+        }
+        updatePlayButtons();
+        return;
+      }
+
+      if (playingIndex !== null && playingIndex !== index) {
+        audioPlayer.pause();
+      }
+
+      const key = `${song.artist}|${song.title}`;
+      let url = previewUrlCache.get(key);
+      if (!url) {
+        playLoadingIndex = index;
+        updatePlayButtons();
+        try {
+          const res = await fetch(
+            `/api/preview?title=${encodeURIComponent(song.title)}&artist=${encodeURIComponent(song.artist)}`,
+          );
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            const msg =
+              typeof data.detail === "string"
+                ? data.detail
+                : "Preview not available.";
+            statusEl.textContent = msg;
+            statusEl.classList.remove("error");
+            return;
+          }
+          url = data.preview_url;
+          if (!url) {
+            statusEl.textContent = "Preview not available.";
+            statusEl.classList.remove("error");
+            return;
+          }
+          previewUrlCache.set(key, url);
+        } catch (e) {
+          statusEl.textContent = e.message || "Preview not available.";
+          statusEl.classList.remove("error");
+          return;
+        } finally {
+          playLoadingIndex = null;
+          updatePlayButtons();
+        }
+      }
+
+      audioPlayer.src = url;
+      playingIndex = index;
+      try {
+        await audioPlayer.play();
+        statusEl.classList.remove("error");
+      } catch (_) {
+        playingIndex = null;
+        statusEl.textContent = "Could not play audio in this browser.";
+        statusEl.classList.add("error");
+      }
+      updatePlayButtons();
+    }
 
     function pick(arr) {
       return arr[Math.floor(Math.random() * arr.length)];
@@ -359,6 +510,7 @@
     }
 
     function setUiBusy(loading, busyLabel) {
+      formBusy = loading;
       submitBtn.disabled = loading;
       randomBtn.disabled = loading;
       promptEl.disabled = loading;
@@ -369,6 +521,7 @@
         statusEl.textContent = busyLabel;
         statusEl.classList.remove("error");
       }
+      updatePlayButtons();
     }
 
     function showError(msg) {
@@ -396,12 +549,17 @@
           <p class="card-artist"></p>
           <p class="card-why"></p>
           <div class="card-actions">
-            <button type="button" class="btn-secondary btn-redo">Redo</button>
+            <div class="card-actions-row">
+              <button type="button" class="btn-play" data-track-index="${i}">Play</button>
+              <button type="button" class="btn-secondary btn-redo">Redo</button>
+            </div>
           </div>
         `;
         article.querySelector(".card-title").textContent = song.title || "—";
         article.querySelector(".card-artist").textContent = song.artist || "—";
         article.querySelector(".card-why").textContent = song.why || "";
+        const playBtn = article.querySelector(".btn-play");
+        playBtn.addEventListener("click", () => togglePlay(i));
         const redoBtn = article.querySelector(".btn-redo");
         redoBtn.setAttribute(
           "aria-label",
@@ -419,6 +577,7 @@
         return;
       }
 
+      stopPlayback();
       setUiBusy(true, "Fetching recommendations…");
       try {
         const res = await fetch("/api/recommend", {
@@ -461,6 +620,10 @@
 
       const replace = currentSongs[index];
       const others = currentSongs.filter((_, j) => j !== index);
+
+      if (playingIndex === index) {
+        stopPlayback();
+      }
 
       setUiBusy(true, "Finding a different track…");
       try {
