@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Saved playlists — Song Recommender</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0c0d12;
+      --bg-elevated: #14151c;
+      --border: rgba(255, 255, 255, 0.08);
+      --text: #e8e9ed;
+      --muted: #8b8f9a;
+      --accent: #7c5cff;
+      --accent-dim: rgba(124, 92, 255, 0.15);
+      --danger: #f87171;
+      --radius: 14px;
+      --shadow: 0 18px 50px rgba(0, 0, 0, 0.45);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "DM Sans", system-ui, sans-serif;
+      background: radial-gradient(1200px 600px at 10% -10%, rgba(124, 92, 255, 0.18), transparent 55%),
+        radial-gradient(900px 500px at 90% 0%, rgba(56, 189, 248, 0.1), transparent 50%),
+        var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    .wrap {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 2.5rem 1.25rem 4rem;
+    }
+
+    .site-nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem 1.25rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .nav-link {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--muted);
+      text-decoration: none;
+      border-radius: 999px;
+      padding: 0.35rem 0.85rem;
+      border: 1px solid transparent;
+      transition: color 0.15s, border-color 0.15s, background 0.15s;
+    }
+
+    .nav-link:hover {
+      color: var(--text);
+      border-color: var(--border);
+      background: var(--bg-elevated);
+    }
+
+    .nav-link[aria-current="page"] {
+      color: var(--text);
+      border-color: rgba(124, 92, 255, 0.35);
+      background: var(--accent-dim);
+    }
+
+    .nav-count {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 0.75rem;
+      opacity: 0.9;
+    }
+
+    h1 {
+      font-size: clamp(1.75rem, 4vw, 2.25rem);
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      margin: 0 0 0.5rem;
+    }
+
+    .sub {
+      color: var(--muted);
+      font-size: 1rem;
+      max-width: 48ch;
+      margin: 0 0 1.5rem;
+    }
+
+    .panel {
+      background: linear-gradient(145deg, rgba(255, 255, 255, 0.04), transparent);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem;
+      box-shadow: var(--shadow);
+    }
+
+    .list-header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 0.75rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .list-title {
+      font-size: 1.05rem;
+      font-weight: 600;
+      margin: 0;
+    }
+
+    .list-count {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--muted);
+    }
+
+    .empty {
+      margin: 0;
+      font-size: 0.92rem;
+      color: var(--muted);
+    }
+
+    .empty[hidden] {
+      display: none;
+    }
+
+    .saved-list {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .saved-pl {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1rem 1.1rem;
+    }
+
+    .saved-pl-head {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 0.65rem;
+    }
+
+    .saved-pl-name {
+      font-size: 1.05rem;
+      font-weight: 600;
+      margin: 0;
+      letter-spacing: -0.02em;
+    }
+
+    .saved-pl-meta {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin: 0.25rem 0 0;
+    }
+
+    .saved-pl-prompt {
+      font-size: 0.82rem;
+      color: #a4a8b5;
+      margin: 0.65rem 0 0;
+      padding-top: 0.6rem;
+      border-top: 1px solid var(--border);
+      line-height: 1.45;
+    }
+
+    .saved-pl-prompt[hidden] {
+      display: none;
+    }
+
+    .saved-pl-tracks {
+      margin: 0.75rem 0 0;
+      padding-left: 1.1rem;
+      font-size: 0.88rem;
+      color: var(--text);
+    }
+
+    .saved-pl-tracks li {
+      margin: 0.35rem 0;
+    }
+
+    .btn-delete {
+      font-family: inherit;
+      font-size: 0.82rem;
+      font-weight: 600;
+      padding: 0.4rem 0.75rem;
+      border-radius: 999px;
+      border: 1px solid rgba(248, 113, 113, 0.45);
+      background: transparent;
+      color: var(--danger);
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .btn-delete:hover {
+      background: rgba(248, 113, 113, 0.1);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .nav-link,
+      .btn-delete {
+        transition: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <nav class="site-nav" aria-label="Site">
+      <a href="/" class="nav-link">Recommend songs</a>
+      <a href="/favorites" class="nav-link">Favorite tracks <span class="nav-count" id="favoritesNavCount">0</span></a>
+      <a href="/playlists" class="nav-link" aria-current="page">Saved playlists <span class="nav-count" id="savedPlaylistsNavCount">0</span></a>
+    </nav>
+
+    <header>
+      <h1>Saved playlists</h1>
+      <p class="sub">Playlists you saved from the recommender. Stored only in this browser on this device.</p>
+    </header>
+
+    <section class="panel" aria-label="Saved playlists">
+      <div class="list-header">
+        <h2 class="list-title">Your playlists</h2>
+        <span class="list-count" id="playlistListCount">0</span>
+      </div>
+      <p class="empty" id="playlistsEmpty">No saved playlists yet. Get recommendations on the home page, then use Save playlist.</p>
+      <div class="saved-list" id="playlistsRoot"></div>
+    </section>
+  </div>
+
+  <script>
+    const FAVORITES_STORAGE_KEY = "songRecommenderFavorites";
+    const PLAYLISTS_STORAGE_KEY = "songRecommenderSavedPlaylists";
+
+    const playlistsEmptyEl = document.getElementById("playlistsEmpty");
+    const playlistsRootEl = document.getElementById("playlistsRoot");
+    const playlistListCountEl = document.getElementById("playlistListCount");
+
+    function loadFavoritesLength() {
+      try {
+        const raw = localStorage.getItem(FAVORITES_STORAGE_KEY);
+        if (!raw) return 0;
+        const arr = JSON.parse(raw);
+        return Array.isArray(arr) ? arr.length : 0;
+      } catch {
+        return 0;
+      }
+    }
+
+    function loadSavedPlaylists() {
+      try {
+        const raw = localStorage.getItem(PLAYLISTS_STORAGE_KEY);
+        if (!raw) return [];
+        const arr = JSON.parse(raw);
+        if (!Array.isArray(arr)) return [];
+        return arr.filter(
+          (p) =>
+            p &&
+            typeof p.id === "string" &&
+            typeof p.name === "string" &&
+            Array.isArray(p.tracks),
+        );
+      } catch {
+        return [];
+      }
+    }
+
+    function persistSavedPlaylists(arr) {
+      try {
+        localStorage.setItem(PLAYLISTS_STORAGE_KEY, JSON.stringify(arr));
+      } catch (_) {}
+    }
+
+    function updateNavCounts() {
+      const favNav = document.getElementById("favoritesNavCount");
+      if (favNav) favNav.textContent = String(loadFavoritesLength());
+      const list = loadSavedPlaylists();
+      const plNav = document.getElementById("savedPlaylistsNavCount");
+      if (plNav) plNav.textContent = String(list.length);
+      if (playlistListCountEl) playlistListCountEl.textContent = String(list.length);
+    }
+
+    function formatSavedAt(iso) {
+      try {
+        const d = new Date(iso);
+        if (Number.isNaN(d.getTime())) return "";
+        return d.toLocaleString(undefined, {
+          dateStyle: "medium",
+          timeStyle: "short",
+        });
+      } catch {
+        return "";
+      }
+    }
+
+    function deletePlaylist(id) {
+      const rest = loadSavedPlaylists().filter((p) => p.id !== id);
+      persistSavedPlaylists(rest);
+      render();
+    }
+
+    function playlistTitleDisplay(name) {
+      const s = String(name || "").trim();
+      if (!s) return { text: "Untitled", title: "" };
+      if (s.length <= 32) return { text: s, title: "" };
+      return { text: `${s.slice(0, 30)}…`, title: s };
+    }
+
+    function render() {
+      const list = loadSavedPlaylists();
+      updateNavCounts();
+      playlistsEmptyEl.hidden = list.length > 0;
+      playlistsRootEl.innerHTML = "";
+
+      list.forEach((pl) => {
+        const article = document.createElement("article");
+        article.className = "saved-pl";
+
+        const head = document.createElement("div");
+        head.className = "saved-pl-head";
+
+        const left = document.createElement("div");
+        const h3 = document.createElement("h3");
+        h3.className = "saved-pl-name";
+        const titleDisp = playlistTitleDisplay(pl.name);
+        h3.textContent = titleDisp.text;
+        if (titleDisp.title) h3.title = titleDisp.title;
+        const meta = document.createElement("p");
+        meta.className = "saved-pl-meta";
+        const when = formatSavedAt(pl.savedAt);
+        meta.textContent = `${pl.tracks.length} tracks${when ? ` · saved ${when}` : ""}`;
+        left.appendChild(h3);
+        left.appendChild(meta);
+
+        const del = document.createElement("button");
+        del.type = "button";
+        del.className = "btn-delete";
+        del.textContent = "Delete";
+        del.setAttribute("aria-label", `Delete playlist ${pl.name}`);
+        del.addEventListener("click", () => deletePlaylist(pl.id));
+
+        head.appendChild(left);
+        head.appendChild(del);
+        article.appendChild(head);
+
+        const prompt = String(pl.prompt || "").trim();
+        const promptP = document.createElement("p");
+        promptP.className = "saved-pl-prompt";
+        if (prompt) {
+          promptP.textContent = `Request: ${prompt}`;
+        } else {
+          promptP.hidden = true;
+        }
+        article.appendChild(promptP);
+
+        const ol = document.createElement("ol");
+        ol.className = "saved-pl-tracks";
+        pl.tracks.forEach((t) => {
+          const li = document.createElement("li");
+          const title = String(t.title || "—").trim();
+          const artist = String(t.artist || "—").trim();
+          li.appendChild(document.createTextNode(`${title} — ${artist}`));
+          ol.appendChild(li);
+        });
+        article.appendChild(ol);
+        playlistsRootEl.appendChild(article);
+      });
+    }
+
+    render();
+
+    window.addEventListener("storage", (e) => {
+      if (e.key === FAVORITES_STORAGE_KEY || e.key === PLAYLISTS_STORAGE_KEY) {
+        render();
+      }
+    });
+  </script>
+</body>
+</html>

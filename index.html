@@ -435,6 +435,14 @@
       min-width: 2.5rem;
     }
 
+    .playlist-bar-row #savePlaylistBtn {
+      font-size: 0.82rem;
+      font-weight: 600;
+      font-family: inherit;
+      min-width: auto;
+      padding: 0.5rem 0.85rem;
+    }
+
     .playlist-hint {
       margin: 0.65rem 0 0;
       font-size: 0.78rem;
@@ -456,6 +464,7 @@
     <nav class="site-nav" aria-label="Site">
       <a href="/" class="nav-link" aria-current="page">Recommend songs</a>
       <a href="/favorites" class="nav-link">Favorite tracks <span class="nav-count" id="favoritesNavCount">0</span></a>
+      <a href="/playlists" class="nav-link">Saved playlists <span class="nav-count" id="savedPlaylistsNavCount">0</span></a>
     </nav>
 
     <header>
@@ -498,6 +507,7 @@
             <button type="button" class="btn-secondary" id="playlistPrev" aria-label="Previous track" title="Previous track">⏮</button>
             <button type="button" class="btn-secondary" id="playlistNext" aria-label="Next track" title="Next track">⏭</button>
             <button type="button" class="btn-secondary" id="playlistStop" aria-label="Stop playback" title="Stop">⏹</button>
+            <button type="button" class="btn-secondary" id="savePlaylistBtn">Save playlist</button>
           </div>
           <p class="playlist-hint">
             Plays your list in order using ~30-second previews from Apple’s catalog (same as each track’s ▶).
@@ -517,6 +527,8 @@
     const gridEl = document.getElementById("grid");
     const favoritesNavCountEl = document.getElementById("favoritesNavCount");
     const FAVORITES_STORAGE_KEY = "songRecommenderFavorites";
+    const PLAYLISTS_STORAGE_KEY = "songRecommenderSavedPlaylists";
+    const MAX_SAVED_PLAYLISTS = 40;
     let favorites = [];
     let currentSongs = [];
     let formBusy = false;
@@ -545,6 +557,78 @@
       try {
         localStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify(favorites));
       } catch (_) {}
+    }
+
+    function loadSavedPlaylists() {
+      try {
+        const raw = localStorage.getItem(PLAYLISTS_STORAGE_KEY);
+        if (!raw) return [];
+        const arr = JSON.parse(raw);
+        if (!Array.isArray(arr)) return [];
+        return arr.filter(
+          (p) =>
+            p &&
+            typeof p.id === "string" &&
+            typeof p.name === "string" &&
+            Array.isArray(p.tracks),
+        );
+      } catch {
+        return [];
+      }
+    }
+
+    function persistSavedPlaylists(arr) {
+      try {
+        localStorage.setItem(PLAYLISTS_STORAGE_KEY, JSON.stringify(arr));
+      } catch (_) {}
+    }
+
+    function updateSavedPlaylistsNavCount() {
+      const el = document.getElementById("savedPlaylistsNavCount");
+      if (el) {
+        el.textContent = String(loadSavedPlaylists().length);
+      }
+    }
+
+    function nextPlaylistNumber() {
+      const list = loadSavedPlaylists();
+      let max = 0;
+      for (const pl of list) {
+        const m = String(pl.name || "").match(/^playlist\s*#(\d+)$/i);
+        if (m) {
+          const n = parseInt(m[1], 10);
+          if (!Number.isNaN(n)) max = Math.max(max, n);
+        }
+      }
+      return max + 1;
+    }
+
+    function newPlaylistId() {
+      if (typeof crypto !== "undefined" && crypto.randomUUID) {
+        return crypto.randomUUID();
+      }
+      return `pl-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+    }
+
+    function saveCurrentPlaylist() {
+      if (formBusy || !currentSongs.length) return;
+      const nameStored = `Playlist #${nextPlaylistNumber()}`;
+      const existing = loadSavedPlaylists();
+      const entry = {
+        id: newPlaylistId(),
+        name: nameStored,
+        savedAt: new Date().toISOString(),
+        prompt: promptEl.value.trim(),
+        tracks: currentSongs.map((s) => ({
+          title: s.title || "",
+          artist: s.artist || "",
+        })),
+      };
+      const next = [entry, ...existing].slice(0, MAX_SAVED_PLAYLISTS);
+      persistSavedPlaylists(next);
+      updateSavedPlaylistsNavCount();
+      statusEl.textContent = `Saved "${nameStored}" (${currentSongs.length} tracks). Open Saved playlists to view or remove.`;
+      statusEl.classList.remove("error");
     }
 
     function isFavorite(song) {
@@ -618,12 +702,16 @@
 
     favorites = loadFavorites();
     updateFavoritesNavCount();
+    updateSavedPlaylistsNavCount();
 
     window.addEventListener("storage", (e) => {
       if (e.key === FAVORITES_STORAGE_KEY) {
         favorites = loadFavorites();
         updateFavoritesNavCount();
         updateHeartButtons();
+      }
+      if (e.key === PLAYLISTS_STORAGE_KEY) {
+        updateSavedPlaylistsNavCount();
       }
     });
 
@@ -765,6 +853,7 @@
       const btnPrev = document.getElementById("playlistPrev");
       const btnNext = document.getElementById("playlistNext");
       const btnStop = document.getElementById("playlistStop");
+      const saveBtn = document.getElementById("savePlaylistBtn");
       if (!bar || !now || !btnPlayAll || !btnPrev || !btnNext || !btnStop) return;
 
       if (!currentSongs.length) {
@@ -790,6 +879,9 @@
         playingIndex === null ||
         playingIndex >= currentSongs.length - 1;
       btnStop.disabled = formBusy || (playingIndex === null && playLoadingIndex === null);
+      if (saveBtn) {
+        saveBtn.disabled = formBusy;
+      }
     }
 
     async function startPlaylist() {
@@ -1195,6 +1287,7 @@
     document.getElementById("playlistPrev").addEventListener("click", playlistPrev);
     document.getElementById("playlistNext").addEventListener("click", playlistNext);
     document.getElementById("playlistStop").addEventListener("click", stopPlayback);
+    document.getElementById("savePlaylistBtn").addEventListener("click", saveCurrentPlaylist);
   </script>
 </body>
 </html>
