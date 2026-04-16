@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Song Recommender</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0c0d12;
+      --bg-elevated: #14151c;
+      --border: rgba(255, 255, 255, 0.08);
+      --text: #e8e9ed;
+      --muted: #8b8f9a;
+      --accent: #7c5cff;
+      --accent-dim: rgba(124, 92, 255, 0.15);
+      --danger: #f87171;
+      --radius: 14px;
+      --shadow: 0 18px 50px rgba(0, 0, 0, 0.45);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "DM Sans", system-ui, sans-serif;
+      background: radial-gradient(1200px 600px at 10% -10%, rgba(124, 92, 255, 0.18), transparent 55%),
+        radial-gradient(900px 500px at 90% 0%, rgba(56, 189, 248, 0.1), transparent 50%),
+        var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    .wrap {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 2.5rem 1.25rem 4rem;
+    }
+
+    header {
+      margin-bottom: 2rem;
+    }
+
+    h1 {
+      font-size: clamp(1.75rem, 4vw, 2.25rem);
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      margin: 0 0 0.5rem;
+    }
+
+    .sub {
+      color: var(--muted);
+      font-size: 1rem;
+      max-width: 42ch;
+    }
+
+    .panel {
+      background: linear-gradient(145deg, rgba(255, 255, 255, 0.04), transparent);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem;
+      box-shadow: var(--shadow);
+      margin-bottom: 2rem;
+    }
+
+    label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--muted);
+      margin-bottom: 0.5rem;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 110px;
+      resize: vertical;
+      padding: 0.85rem 1rem;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--bg-elevated);
+      color: var(--text);
+      font-family: inherit;
+      font-size: 1rem;
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+
+    textarea:focus {
+      border-color: rgba(124, 92, 255, 0.5);
+      box-shadow: 0 0 0 3px var(--accent-dim);
+    }
+
+    textarea::placeholder {
+      color: #5c5f6a;
+    }
+
+    .row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      align-items: center;
+      margin-top: 1rem;
+    }
+
+    button {
+      font-family: inherit;
+      font-weight: 600;
+      font-size: 0.95rem;
+      padding: 0.65rem 1.35rem;
+      border-radius: 999px;
+      border: none;
+      cursor: pointer;
+      background: linear-gradient(135deg, var(--accent), #5b8cff);
+      color: #fff;
+      box-shadow: 0 8px 24px rgba(124, 92, 255, 0.35);
+      transition: transform 0.12s, filter 0.12s, opacity 0.12s;
+    }
+
+    button:hover:not(:disabled) {
+      filter: brightness(1.06);
+      transform: translateY(-1px);
+    }
+
+    button:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .hint {
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    .status {
+      font-size: 0.9rem;
+      min-height: 1.4em;
+      color: var(--muted);
+    }
+
+    .status.error {
+      color: var(--danger);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 1rem;
+    }
+
+    .card {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.1rem 1.15rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      transition: border-color 0.15s, transform 0.15s;
+    }
+
+    .card:hover {
+      border-color: rgba(124, 92, 255, 0.35);
+      transform: translateY(-2px);
+    }
+
+    .card-num {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 0.7rem;
+      font-weight: 500;
+      color: var(--accent);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .card-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      margin: 0;
+    }
+
+    .card-artist {
+      font-size: 0.95rem;
+      color: var(--muted);
+      margin: 0;
+    }
+
+    .card-why {
+      font-size: 0.88rem;
+      color: #a4a8b5;
+      margin: 0.35rem 0 0;
+      padding-top: 0.65rem;
+      border-top: 1px solid var(--border);
+      line-height: 1.45;
+    }
+
+    .empty {
+      text-align: center;
+      color: var(--muted);
+      padding: 2rem 1rem;
+      border: 1px dashed var(--border);
+      border-radius: 12px;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      button,
+      .card {
+        transition: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Song Recommender</h1>
+      <p class="sub">Describe a vibe, genre, or artist — get a fresh playlist powered by Llama 3.</p>
+    </header>
+
+    <section class="panel" aria-label="Request form">
+      <label for="prompt">What do you want to hear?</label>
+      <textarea
+        id="prompt"
+        placeholder="e.g. Late-night synth-pop with dreamy vocals, similar to The Weeknd but more upbeat…"
+      ></textarea>
+      <div class="row">
+        <button type="button" id="submit">Get recommendations</button>
+        <span class="hint">Press the button or use Ctrl+Enter</span>
+      </div>
+      <p class="status" id="status" role="status" aria-live="polite"></p>
+    </section>
+
+    <section id="results-section" aria-label="Results">
+      <div class="grid" id="grid"></div>
+    </section>
+  </div>
+
+  <script>
+    const promptEl = document.getElementById("prompt");
+    const submitBtn = document.getElementById("submit");
+    const statusEl = document.getElementById("status");
+    const gridEl = document.getElementById("grid");
+
+    function setLoading(loading) {
+      submitBtn.disabled = loading;
+      promptEl.disabled = loading;
+      statusEl.textContent = loading ? "Fetching recommendations…" : "";
+      statusEl.classList.remove("error");
+    }
+
+    function showError(msg) {
+      statusEl.textContent = msg;
+      statusEl.classList.add("error");
+    }
+
+    function renderCards(songs) {
+      gridEl.innerHTML = "";
+      if (!songs.length) {
+        gridEl.innerHTML = '<div class="empty">No songs returned. Try a different prompt.</div>';
+        return;
+      }
+      songs.forEach((song, i) => {
+        const article = document.createElement("article");
+        article.className = "card";
+        article.innerHTML = `
+          <span class="card-num">Track ${i + 1}</span>
+          <h2 class="card-title"></h2>
+          <p class="card-artist"></p>
+          <p class="card-why"></p>
+        `;
+        article.querySelector(".card-title").textContent = song.title || "—";
+        article.querySelector(".card-artist").textContent = song.artist || "—";
+        article.querySelector(".card-why").textContent = song.why || "";
+        gridEl.appendChild(article);
+      });
+    }
+
+    async function fetchRecommendations() {
+      const prompt = promptEl.value.trim();
+      if (!prompt) {
+        showError("Enter what you want to hear.");
+        return;
+      }
+
+      setLoading(true);
+      try {
+        const res = await fetch("/api/recommend", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ prompt }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          const detail = data.detail;
+          const msg =
+            typeof detail === "string"
+              ? detail
+              : Array.isArray(detail)
+                ? detail.map((d) => d.msg || d).join(" ")
+                : res.statusText || "Request failed";
+          throw new Error(msg);
+        }
+        renderCards(data.songs || []);
+        statusEl.textContent = `Showing ${(data.songs || []).length} tracks`;
+        statusEl.classList.remove("error");
+      } catch (e) {
+        showError(e.message || "Something went wrong.");
+        gridEl.innerHTML = "";
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    submitBtn.addEventListener("click", fetchRecommendations);
+    promptEl.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        fetchRecommendations();
+      }
+    });
+  </script>
+</body>
+</html>
