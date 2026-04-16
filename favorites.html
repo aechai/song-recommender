@@ -37,7 +37,7 @@
     }
 
     .wrap {
-      max-width: 720px;
+      max-width: 960px;
       margin: 0 auto;
       padding: 2.5rem 1.25rem 4rem;
     }
@@ -116,69 +116,202 @@
       color: var(--muted);
     }
 
-    .favorites-list {
-      list-style: none;
-      margin: 0;
-      padding: 0;
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
+    .status {
+      font-size: 0.9rem;
+      min-height: 1.4em;
+      color: var(--muted);
+      margin: 0 0 0.75rem;
     }
 
-    .favorite-item {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      gap: 0.75rem;
-      padding: 0.85rem 0.9rem;
+    .status.error {
+      color: var(--danger);
+    }
+
+    .playlist-bar {
+      margin-bottom: 1.25rem;
+    }
+
+    .playlist-bar.hidden {
+      display: none;
+    }
+
+    .playlist-bar-inner {
       background: var(--bg-elevated);
       border: 1px solid var(--border);
-      border-radius: 10px;
+      border-radius: 12px;
+      padding: 1rem 1.15rem;
     }
 
-    .favorite-item-body {
-      min-width: 0;
-      display: flex;
-      flex-direction: column;
-      gap: 0.35rem;
-    }
-
-    .favorite-title {
-      font-weight: 600;
-      font-size: 1rem;
-    }
-
-    .favorite-artist {
-      font-size: 0.9rem;
+    .playlist-now {
+      margin: 0 0 0.75rem;
+      font-size: 0.92rem;
       color: var(--muted);
     }
 
-    .favorite-why {
-      font-size: 0.85rem;
-      color: #a4a8b5;
-      line-height: 1.45;
-      margin: 0;
-      padding-top: 0.35rem;
-      border-top: 1px solid var(--border);
+    .playlist-bar-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      align-items: center;
     }
 
-    .favorite-remove {
-      flex-shrink: 0;
+    .playlist-bar-row button {
+      font-size: 1.15rem;
+      line-height: 1;
+      padding: 0.55rem 0.85rem;
+      min-width: 2.5rem;
       font-family: inherit;
       font-weight: 600;
-      font-size: 0.8rem;
-      padding: 0.4rem 0.75rem;
+      border-radius: 999px;
+      border: none;
+      cursor: pointer;
+      background: linear-gradient(135deg, var(--accent), #5b8cff);
+      color: #fff;
+      box-shadow: 0 6px 18px rgba(124, 92, 255, 0.28);
+    }
+
+    .playlist-bar-row button.btn-secondary {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--border);
+      box-shadow: none;
+    }
+
+    .playlist-bar-row button:hover:not(:disabled) {
+      filter: brightness(1.06);
+    }
+
+    .playlist-bar-row button:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    .playlist-hint {
+      margin: 0.65rem 0 0;
+      font-size: 0.78rem;
+      color: #6b6f7a;
+      line-height: 1.4;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 1rem;
+    }
+
+    .card {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.1rem 1.15rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      transition: border-color 0.15s, transform 0.15s;
+    }
+
+    .card:hover {
+      border-color: rgba(124, 92, 255, 0.35);
+      transform: translateY(-2px);
+    }
+
+    .card-num {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 0.7rem;
+      font-weight: 500;
+      color: var(--accent);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .card-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      margin: 0;
+    }
+
+    .card-artist {
+      font-size: 0.95rem;
+      color: var(--muted);
+      margin: 0;
+    }
+
+    .card-why {
+      font-size: 0.88rem;
+      color: #a4a8b5;
+      margin: 0.35rem 0 0;
+      padding-top: 0.65rem;
+      border-top: 1px solid var(--border);
+      line-height: 1.45;
+    }
+
+    .card-actions {
+      margin-top: auto;
+      padding-top: 0.75rem;
+    }
+
+    .card-actions-row {
+      display: flex;
+      gap: 0.5rem;
+      align-items: stretch;
+    }
+
+    .card-actions-row .btn-play {
+      flex: 1.15;
+      font-family: inherit;
+      font-weight: 600;
+      font-size: 1rem;
+      line-height: 1;
+      min-width: 2.5rem;
+      padding: 0.5rem 0.75rem;
+      margin: 0;
+      border-radius: 999px;
+      border: none;
+      cursor: pointer;
+      background: linear-gradient(135deg, var(--accent), #5b8cff);
+      color: #fff;
+      box-shadow: 0 6px 18px rgba(124, 92, 255, 0.28);
+      transition: transform 0.12s, filter 0.12s, opacity 0.12s;
+    }
+
+    .card-actions-row .btn-play:hover:not(:disabled) {
+      filter: brightness(1.06);
+      transform: translateY(-1px);
+    }
+
+    .card-actions-row .btn-play:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .card-actions-row .btn-remove {
+      flex: 1;
+      width: auto;
+      min-width: 0;
+      font-size: 0.85rem;
+      font-weight: 600;
+      padding: 0.5rem 0.75rem;
+      margin: 0;
+      font-family: inherit;
       border-radius: 999px;
       border: 1px solid var(--border);
       background: transparent;
       color: var(--text);
       cursor: pointer;
+      box-shadow: none;
       transition: border-color 0.15s, background 0.15s;
     }
 
-    .favorite-remove:hover {
+    .card-actions-row .btn-remove:hover:not(:disabled) {
       border-color: rgba(124, 92, 255, 0.45);
       background: var(--accent-dim);
+    }
+
+    .card.is-playing {
+      border-color: rgba(124, 92, 255, 0.5);
+      box-shadow: 0 0 0 1px rgba(124, 92, 255, 0.2);
     }
 
     .favorites-empty {
@@ -191,8 +324,12 @@
       display: none;
     }
 
-    button {
-      font-family: inherit;
+    @media (prefers-reduced-motion: reduce) {
+      button,
+      .card,
+      .card-actions-row .btn-play {
+        transition: none;
+      }
     }
   </style>
 </head>
@@ -216,16 +353,42 @@
       <p class="favorites-empty" id="favoritesEmpty">
         No favorites yet. Go to the recommender and tap the ♥ on any track.
       </p>
-      <ul class="favorites-list" id="favoritesList"></ul>
+
+      <div id="playlist-bar" class="playlist-bar hidden" aria-label="Preview playlist">
+        <div class="playlist-bar-inner">
+          <p class="playlist-now" id="playlistNow"></p>
+          <div class="playlist-bar-row">
+            <button type="button" id="playlistPlayAll" aria-label="Preview playlist" title="Preview playlist">▶</button>
+            <button type="button" class="btn-secondary" id="playlistPrev" aria-label="Previous track" title="Previous track">⏮</button>
+            <button type="button" class="btn-secondary" id="playlistNext" aria-label="Next track" title="Next track">⏭</button>
+            <button type="button" class="btn-secondary" id="playlistStop" aria-label="Stop playback" title="Stop">⏹</button>
+          </div>
+          <p class="playlist-hint">
+            Plays your favorites in order using ~30-second previews from Apple’s catalog (same as each track’s ▶).
+          </p>
+        </div>
+      </div>
+
+      <p class="status" id="playbackStatus" role="status" aria-live="polite"></p>
+      <div class="grid" id="favoritesGrid"></div>
     </section>
   </div>
 
   <script>
-    const favoritesListEl = document.getElementById("favoritesList");
-    const favoritesEmptyEl = document.getElementById("favoritesEmpty");
     const favoritesCountEl = document.getElementById("favoritesCount");
+    const favoritesEmptyEl = document.getElementById("favoritesEmpty");
+    const favoritesGridEl = document.getElementById("favoritesGrid");
+    const statusEl = document.getElementById("playbackStatus");
     const FAVORITES_STORAGE_KEY = "songRecommenderFavorites";
     let favorites = [];
+    let currentSongs = [];
+
+    let playingIndex = null;
+    let playLoadingIndex = null;
+    let playlistMode = false;
+    const previewUrlCache = new Map();
+    const audioPlayer = new Audio();
+    audioPlayer.preload = "none";
 
     function favoriteKey(song) {
       const t = String(song.title || "").trim().toLowerCase();
@@ -253,48 +416,292 @@
       } catch (_) {}
     }
 
-    function renderFavoritesList() {
-      favoritesCountEl.textContent = String(favorites.length);
-      favoritesEmptyEl.hidden = favorites.length > 0;
-      favoritesListEl.innerHTML = "";
-      favorites.forEach((fav) => {
-        const li = document.createElement("li");
-        li.className = "favorite-item";
-        const why = (fav.why || "").trim();
-        li.innerHTML = `
-          <div class="favorite-item-body">
-            <span class="favorite-title"></span>
-            <span class="favorite-artist"></span>
-            ${why ? `<p class="favorite-why"></p>` : ""}
-          </div>
-          <button type="button" class="favorite-remove">Remove</button>
-        `;
-        li.querySelector(".favorite-title").textContent = fav.title || "—";
-        li.querySelector(".favorite-artist").textContent = fav.artist || "—";
-        if (why) {
-          li.querySelector(".favorite-why").textContent = why;
+    audioPlayer.addEventListener("ended", async () => {
+      if (playlistMode && playingIndex !== null) {
+        const next = playingIndex + 1;
+        if (next < currentSongs.length) {
+          await playTrackAt(next, { fromPlaylist: true });
+          return;
         }
-        const rmBtn = li.querySelector(".favorite-remove");
-        rmBtn.setAttribute(
-          "aria-label",
-          `Remove ${fav.title || "track"} by ${fav.artist || "artist"} from favorites`,
-        );
-        rmBtn.addEventListener("click", () => {
-          const k = favoriteKey(fav);
-          favorites = favorites.filter((f) => favoriteKey(f) !== k);
-          persistFavorites();
-          renderFavoritesList();
-        });
-        favoritesListEl.appendChild(li);
+        playlistMode = false;
+        playingIndex = null;
+        statusEl.textContent = "Playlist finished.";
+        statusEl.classList.remove("error");
+        updatePlayButtons();
+        updatePlaylistBar();
+        return;
+      }
+      playingIndex = null;
+      updatePlayButtons();
+      updatePlaylistBar();
+    });
+
+    function highlightPlayingCard() {
+      favoritesGridEl.querySelectorAll(".card").forEach((card, i) => {
+        card.classList.toggle("is-playing", playingIndex === i || playLoadingIndex === i);
       });
     }
 
-    favorites = loadFavorites();
+    function stopPlayback() {
+      playlistMode = false;
+      audioPlayer.pause();
+      audioPlayer.removeAttribute("src");
+      audioPlayer.load();
+      playingIndex = null;
+      playLoadingIndex = null;
+      updatePlayButtons();
+      updatePlaylistBar();
+    }
+
+    async function getOrFetchPreviewUrl(song) {
+      const key = `${song.artist}|${song.title}`;
+      let url = previewUrlCache.get(key);
+      if (url) return url;
+      const res = await fetch(
+        `/api/preview?title=${encodeURIComponent(song.title)}&artist=${encodeURIComponent(song.artist)}`,
+      );
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const msg =
+          typeof data.detail === "string"
+            ? data.detail
+            : "Preview not available.";
+        throw new Error(msg);
+      }
+      url = data.preview_url;
+      if (!url) throw new Error("Preview not available.");
+      previewUrlCache.set(key, url);
+      return url;
+    }
+
+    async function playTrackAt(index, opts = {}) {
+      const fromPlaylist = opts.fromPlaylist === true;
+      const song = currentSongs[index];
+      if (!song) return;
+
+      playLoadingIndex = index;
+      updatePlayButtons();
+      updatePlaylistBar();
+
+      let url;
+      try {
+        url = await getOrFetchPreviewUrl(song);
+      } catch (e) {
+        playLoadingIndex = null;
+        updatePlayButtons();
+        if (fromPlaylist && index + 1 < currentSongs.length) {
+          statusEl.textContent = `Skipping track ${index + 1} (no preview)…`;
+          statusEl.classList.remove("error");
+          await playTrackAt(index + 1, { fromPlaylist: true });
+          return;
+        }
+        statusEl.textContent = e.message || "Preview not available.";
+        statusEl.classList.remove("error");
+        updatePlaylistBar();
+        return;
+      }
+
+      playLoadingIndex = null;
+      audioPlayer.src = url;
+      playingIndex = index;
+      try {
+        await audioPlayer.play();
+        statusEl.classList.remove("error");
+      } catch (_) {
+        playingIndex = null;
+        statusEl.textContent = "Could not play audio in this browser.";
+        statusEl.classList.add("error");
+      }
+      updatePlayButtons();
+      updatePlaylistBar();
+    }
+
+    function updatePlayButtons() {
+      favoritesGridEl.querySelectorAll(".btn-play").forEach((btn) => {
+        const idx = parseInt(btn.dataset.trackIndex, 10);
+        if (Number.isNaN(idx)) return;
+        if (playLoadingIndex === idx) {
+          btn.textContent = "⏳";
+          btn.disabled = true;
+          btn.setAttribute("aria-busy", "true");
+          btn.setAttribute("aria-label", "Loading preview");
+          btn.removeAttribute("title");
+          return;
+        }
+        btn.removeAttribute("aria-busy");
+        btn.disabled = false;
+        const playing = playingIndex === idx && !audioPlayer.paused;
+        btn.textContent = playing ? "⏸" : "▶";
+        btn.setAttribute("aria-label", playing ? "Pause preview" : "Play 30-second preview");
+        btn.setAttribute("title", playing ? "Pause preview" : "Play 30-second preview");
+        btn.setAttribute("aria-pressed", playing ? "true" : "false");
+      });
+      highlightPlayingCard();
+    }
+
+    function updatePlaylistBar() {
+      const bar = document.getElementById("playlist-bar");
+      const now = document.getElementById("playlistNow");
+      const btnPlayAll = document.getElementById("playlistPlayAll");
+      const btnPrev = document.getElementById("playlistPrev");
+      const btnNext = document.getElementById("playlistNext");
+      const btnStop = document.getElementById("playlistStop");
+      if (!bar || !now || !btnPlayAll || !btnPrev || !btnNext || !btnStop) return;
+
+      if (!currentSongs.length) {
+        bar.classList.add("hidden");
+        return;
+      }
+      bar.classList.remove("hidden");
+
+      if (playlistMode && playLoadingIndex !== null) {
+        now.textContent = "Loading preview…";
+      } else if (playlistMode && playingIndex !== null) {
+        now.textContent = `Playlist: track ${playingIndex + 1} of ${currentSongs.length} (~30s previews)`;
+      } else {
+        now.textContent = `${currentSongs.length} tracks — press ▶ to preview in order`;
+      }
+
+      btnPlayAll.disabled = false;
+      btnPrev.disabled =
+        !playlistMode || playingIndex === null || playingIndex <= 0;
+      btnNext.disabled =
+        !playlistMode ||
+        playingIndex === null ||
+        playingIndex >= currentSongs.length - 1;
+      btnStop.disabled = playingIndex === null && playLoadingIndex === null;
+    }
+
+    async function startPlaylist() {
+      if (!currentSongs.length) return;
+      audioPlayer.pause();
+      audioPlayer.removeAttribute("src");
+      audioPlayer.load();
+      playingIndex = null;
+      playLoadingIndex = null;
+      playlistMode = true;
+      updatePlayButtons();
+      await playTrackAt(0, { fromPlaylist: true });
+    }
+
+    async function playlistNext() {
+      if (!playlistMode || playingIndex === null) return;
+      if (playingIndex < currentSongs.length - 1) {
+        await playTrackAt(playingIndex + 1, { fromPlaylist: true });
+      }
+    }
+
+    async function playlistPrev() {
+      if (!playlistMode || playingIndex === null) return;
+      if (playingIndex > 0) {
+        await playTrackAt(playingIndex - 1, { fromPlaylist: true });
+      }
+    }
+
+    async function togglePlay(index) {
+      const song = currentSongs[index];
+      if (!song) return;
+
+      if (playingIndex === index && !audioPlayer.paused) {
+        audioPlayer.pause();
+        updatePlayButtons();
+        updatePlaylistBar();
+        return;
+      }
+
+      if (playingIndex === index && audioPlayer.paused && audioPlayer.src) {
+        try {
+          await audioPlayer.play();
+          statusEl.classList.remove("error");
+        } catch (_) {}
+        updatePlayButtons();
+        updatePlaylistBar();
+        return;
+      }
+
+      playlistMode = false;
+      if (playingIndex !== null && playingIndex !== index) {
+        audioPlayer.pause();
+      }
+      await playTrackAt(index, { fromPlaylist: false });
+    }
+
+    function removeFavoriteAt(index) {
+      if (index < 0 || index >= favorites.length) return;
+
+      if (playingIndex === index || playLoadingIndex === index) {
+        stopPlayback();
+      } else {
+        if (playingIndex !== null && playingIndex > index) playingIndex--;
+        if (playLoadingIndex !== null && playLoadingIndex > index) playLoadingIndex--;
+      }
+
+      favorites.splice(index, 1);
+      persistFavorites();
+      renderFavoritesList();
+    }
+
+    function renderFavoritesList() {
+      favorites = loadFavorites();
+      favoritesCountEl.textContent = String(favorites.length);
+      favoritesEmptyEl.hidden = favorites.length > 0;
+
+      currentSongs = favorites.map((f) => ({
+        title: f.title || "",
+        artist: f.artist || "",
+        why: f.why || "",
+      }));
+
+      favoritesGridEl.innerHTML = "";
+
+      if (!currentSongs.length) {
+        stopPlayback();
+        updatePlaylistBar();
+        return;
+      }
+
+      currentSongs.forEach((song, i) => {
+        const article = document.createElement("article");
+        article.className = "card";
+        article.innerHTML = `
+          <span class="card-num">Favorite ${i + 1}</span>
+          <h2 class="card-title"></h2>
+          <p class="card-artist"></p>
+          <p class="card-why"></p>
+          <div class="card-actions">
+            <div class="card-actions-row">
+              <button type="button" class="btn-play" data-track-index="${i}" aria-label="Play 30-second preview" title="Play preview">▶</button>
+              <button type="button" class="btn-remove">Remove</button>
+            </div>
+          </div>
+        `;
+        article.querySelector(".card-title").textContent = song.title || "—";
+        article.querySelector(".card-artist").textContent = song.artist || "—";
+        article.querySelector(".card-why").textContent = song.why || "";
+        article.querySelector(".btn-play").addEventListener("click", () => togglePlay(i));
+        const rm = article.querySelector(".btn-remove");
+        rm.setAttribute(
+          "aria-label",
+          `Remove ${song.title || "track"} from favorites`,
+        );
+        rm.addEventListener("click", () => removeFavoriteAt(i));
+        favoritesGridEl.appendChild(article);
+      });
+
+      updatePlayButtons();
+      updatePlaylistBar();
+    }
+
     renderFavoritesList();
+
+    document.getElementById("playlistPlayAll").addEventListener("click", startPlaylist);
+    document.getElementById("playlistPrev").addEventListener("click", playlistPrev);
+    document.getElementById("playlistNext").addEventListener("click", playlistNext);
+    document.getElementById("playlistStop").addEventListener("click", stopPlayback);
 
     window.addEventListener("storage", (e) => {
       if (e.key === FAVORITES_STORAGE_KEY) {
-        favorites = loadFavorites();
+        stopPlayback();
         renderFavoritesList();
       }
     });
