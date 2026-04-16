@@ -133,6 +133,18 @@
       transform: none;
     }
 
+    button.btn-secondary {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--border);
+      box-shadow: none;
+    }
+
+    button.btn-secondary:hover:not(:disabled) {
+      border-color: rgba(124, 92, 255, 0.45);
+      background: var(--accent-dim);
+    }
+
     .hint {
       font-size: 0.8rem;
       color: var(--muted);
@@ -232,6 +244,9 @@
       ></textarea>
       <div class="row">
         <button type="button" id="submit">Get recommendations</button>
+        <button type="button" class="btn-secondary" id="randomPrompt" aria-label="Fill with a random playlist idea">
+          Surprise me
+        </button>
         <span class="hint">Press the button or use Ctrl+Enter</span>
       </div>
       <p class="status" id="status" role="status" aria-live="polite"></p>
@@ -245,11 +260,92 @@
   <script>
     const promptEl = document.getElementById("prompt");
     const submitBtn = document.getElementById("submit");
+    const randomBtn = document.getElementById("randomPrompt");
     const statusEl = document.getElementById("status");
     const gridEl = document.getElementById("grid");
 
+    function pick(arr) {
+      return arr[Math.floor(Math.random() * arr.length)];
+    }
+
+    function randomPlaylistDescription() {
+      const moods = [
+        "melancholy",
+        "euphoric",
+        "nostalgic",
+        "rebellious",
+        "dreamy",
+        "raw and intimate",
+        "dark and cinematic",
+        "warm and hopeful",
+        "icy and minimal",
+        "chaotic and fun",
+      ];
+      const genres = [
+        "indie rock",
+        "neo-soul",
+        "UK garage",
+        "shoegaze",
+        "Latin alternative",
+        "classic hip-hop",
+        "ambient electronica",
+        "bluegrass and folk",
+        "post-punk",
+        "1970s funk",
+        "modern jazz",
+        "hyperpop-adjacent pop",
+        "Southern rap",
+        "French house",
+        "prog rock",
+        "chamber pop",
+      ];
+      const contexts = [
+        "a rainy Sunday afternoon",
+        "a late-night drive with the windows down",
+        "cleaning the apartment with energy",
+        "studying with headphones on",
+        "a small dinner party with friends",
+        "a sunrise walk before the city wakes up",
+        "recovering after a long week",
+        "pretending you're in a movie montage",
+        "dancing alone in the kitchen",
+        "a long train ride through nowhere",
+        "cooking something ambitious",
+        "the last hour before bed",
+      ];
+      const twists = [
+        "unexpected deep cuts, not just the hits",
+        "mostly artists I've probably never heard of",
+        "songs that build slowly then explode",
+        "tight grooves and playful lyrics",
+        "acoustic-forward with rich harmonies",
+        "heavy rhythm section and live-band feel",
+        "sparse arrangements with lots of space",
+        "cross-genre mashups that still feel cohesive",
+      ];
+      const eras = [
+        "mostly 90s",
+        "mostly 2000s",
+        "mostly 2010s",
+        "a mix of decades",
+        "timeless classics and modern picks",
+      ];
+      const patterns = [
+        () =>
+          `${pick(genres)} with ${pick(moods)} energy — great for ${pick(contexts)}. I want ${pick(twists)} (${pick(eras)}).`,
+        () =>
+          `Music for ${pick(contexts)}: ${pick(genres)}, ${pick(moods)} mood, ${pick(twists)}. ${pick(eras)}.`,
+        () =>
+          `I don't know what I want — surprise me with ${pick(genres)} that feels ${pick(moods)}, suited to ${pick(contexts)}. ${pick(twists)}.`,
+        () =>
+          `A playlist that sounds like ${pick(contexts)} in ${pick(genres)} style: ${pick(moods)}, ${pick(twists)}.`,
+      ];
+      return pick(patterns)();
+    }
+
     function setLoading(loading) {
       submitBtn.disabled = loading;
+      randomBtn.disabled = loading;
       promptEl.disabled = loading;
       statusEl.textContent = loading ? "Fetching recommendations…" : "";
       statusEl.classList.remove("error");
@@ -317,6 +413,13 @@
         setLoading(false);
       }
     }
+
+    randomBtn.addEventListener("click", () => {
+      promptEl.value = randomPlaylistDescription();
+      promptEl.focus();
+      statusEl.textContent = "Random idea filled in — edit it or get recommendations.";
+      statusEl.classList.remove("error");
+    });
 
     submitBtn.addEventListener("click", fetchRecommendations);
     promptEl.addEventListener("keydown", (e) => {
