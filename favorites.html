@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Favorite tracks — Song Recommender</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0c0d12;
+      --bg-elevated: #14151c;
+      --border: rgba(255, 255, 255, 0.08);
+      --text: #e8e9ed;
+      --muted: #8b8f9a;
+      --accent: #7c5cff;
+      --accent-dim: rgba(124, 92, 255, 0.15);
+      --danger: #f87171;
+      --radius: 14px;
+      --shadow: 0 18px 50px rgba(0, 0, 0, 0.45);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "DM Sans", system-ui, sans-serif;
+      background: radial-gradient(1200px 600px at 10% -10%, rgba(124, 92, 255, 0.18), transparent 55%),
+        radial-gradient(900px 500px at 90% 0%, rgba(56, 189, 248, 0.1), transparent 50%),
+        var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    .wrap {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 2.5rem 1.25rem 4rem;
+    }
+
+    .site-nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem 1.25rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .nav-link {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--muted);
+      text-decoration: none;
+      border-radius: 999px;
+      padding: 0.35rem 0.85rem;
+      border: 1px solid transparent;
+      transition: color 0.15s, border-color 0.15s, background 0.15s;
+    }
+
+    .nav-link:hover {
+      color: var(--text);
+      border-color: var(--border);
+      background: var(--bg-elevated);
+    }
+
+    .nav-link[aria-current="page"] {
+      color: var(--text);
+      border-color: rgba(124, 92, 255, 0.35);
+      background: var(--accent-dim);
+    }
+
+    h1 {
+      font-size: clamp(1.75rem, 4vw, 2.25rem);
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      margin: 0 0 0.5rem;
+    }
+
+    .sub {
+      color: var(--muted);
+      font-size: 1rem;
+      max-width: 48ch;
+      margin: 0 0 1.5rem;
+    }
+
+    .panel {
+      background: linear-gradient(145deg, rgba(255, 255, 255, 0.04), transparent);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem;
+      box-shadow: var(--shadow);
+    }
+
+    .favorites-header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 0.75rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .favorites-title {
+      font-size: 1.05rem;
+      font-weight: 600;
+      margin: 0;
+      letter-spacing: -0.02em;
+    }
+
+    .favorites-count {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--muted);
+    }
+
+    .favorites-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .favorite-item {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 0.75rem;
+      padding: 0.85rem 0.9rem;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+    }
+
+    .favorite-item-body {
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+
+    .favorite-title {
+      font-weight: 600;
+      font-size: 1rem;
+    }
+
+    .favorite-artist {
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+
+    .favorite-why {
+      font-size: 0.85rem;
+      color: #a4a8b5;
+      line-height: 1.45;
+      margin: 0;
+      padding-top: 0.35rem;
+      border-top: 1px solid var(--border);
+    }
+
+    .favorite-remove {
+      flex-shrink: 0;
+      font-family: inherit;
+      font-weight: 600;
+      font-size: 0.8rem;
+      padding: 0.4rem 0.75rem;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text);
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+    }
+
+    .favorite-remove:hover {
+      border-color: rgba(124, 92, 255, 0.45);
+      background: var(--accent-dim);
+    }
+
+    .favorites-empty {
+      margin: 0;
+      font-size: 0.92rem;
+      color: var(--muted);
+    }
+
+    .favorites-empty[hidden] {
+      display: none;
+    }
+
+    button {
+      font-family: inherit;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <nav class="site-nav" aria-label="Site">
+      <a href="/" class="nav-link">Recommend songs</a>
+      <a href="/favorites" class="nav-link" aria-current="page">Favorite tracks</a>
+    </nav>
+
+    <header>
+      <h1>Favorite tracks</h1>
+      <p class="sub">Songs you saved with the heart on the recommender. Stored only in this browser on this device.</p>
+    </header>
+
+    <section class="panel" aria-label="Saved favorites">
+      <div class="favorites-header">
+        <h2 class="favorites-title">Your list</h2>
+        <span class="favorites-count" id="favoritesCount">0</span>
+      </div>
+      <p class="favorites-empty" id="favoritesEmpty">
+        No favorites yet. Go to the recommender and tap the ♥ on any track.
+      </p>
+      <ul class="favorites-list" id="favoritesList"></ul>
+    </section>
+  </div>
+
+  <script>
+    const favoritesListEl = document.getElementById("favoritesList");
+    const favoritesEmptyEl = document.getElementById("favoritesEmpty");
+    const favoritesCountEl = document.getElementById("favoritesCount");
+    const FAVORITES_STORAGE_KEY = "songRecommenderFavorites";
+    let favorites = [];
+
+    function favoriteKey(song) {
+      const t = String(song.title || "").trim().toLowerCase();
+      const a = String(song.artist || "").trim().toLowerCase();
+      return `${t}\u0000${a}`;
+    }
+
+    function loadFavorites() {
+      try {
+        const raw = localStorage.getItem(FAVORITES_STORAGE_KEY);
+        if (!raw) return [];
+        const arr = JSON.parse(raw);
+        if (!Array.isArray(arr)) return [];
+        return arr.filter(
+          (x) => x && typeof x.title === "string" && typeof x.artist === "string",
+        );
+      } catch {
+        return [];
+      }
+    }
+
+    function persistFavorites() {
+      try {
+        localStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify(favorites));
+      } catch (_) {}
+    }
+
+    function renderFavoritesList() {
+      favoritesCountEl.textContent = String(favorites.length);
+      favoritesEmptyEl.hidden = favorites.length > 0;
+      favoritesListEl.innerHTML = "";
+      favorites.forEach((fav) => {
+        const li = document.createElement("li");
+        li.className = "favorite-item";
+        const why = (fav.why || "").trim();
+        li.innerHTML = `
+          <div class="favorite-item-body">
+            <span class="favorite-title"></span>
+            <span class="favorite-artist"></span>
+            ${why ? `<p class="favorite-why"></p>` : ""}
+          </div>
+          <button type="button" class="favorite-remove">Remove</button>
+        `;
+        li.querySelector(".favorite-title").textContent = fav.title || "—";
+        li.querySelector(".favorite-artist").textContent = fav.artist || "—";
+        if (why) {
+          li.querySelector(".favorite-why").textContent = why;
+        }
+        const rmBtn = li.querySelector(".favorite-remove");
+        rmBtn.setAttribute(
+          "aria-label",
+          `Remove ${fav.title || "track"} by ${fav.artist || "artist"} from favorites`,
+        );
+        rmBtn.addEventListener("click", () => {
+          const k = favoriteKey(fav);
+          favorites = favorites.filter((f) => favoriteKey(f) !== k);
+          persistFavorites();
+          renderFavoritesList();
+        });
+        favoritesListEl.appendChild(li);
+      });
+    }
+
+    favorites = loadFavorites();
+    renderFavoritesList();
+
+    window.addEventListener("storage", (e) => {
+      if (e.key === FAVORITES_STORAGE_KEY) {
+        favorites = loadFavorites();
+        renderFavoritesList();
+      }
+    });
+  </script>
+</body>
+</html>

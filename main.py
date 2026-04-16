@@ -116,6 +116,11 @@ async def serve_index() -> FileResponse:
     return FileResponse(BASE_DIR / "index.html")
 
 
+@app.get("/favorites")
+async def serve_favorites() -> FileResponse:
+    return FileResponse(BASE_DIR / "favorites.html")
+
+
 @app.get("/api/preview")
 async def preview(
     title: str = Query(default="", max_length=220),
