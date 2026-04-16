@@ -213,6 +213,19 @@
       line-height: 1.45;
     }
 
+    .card-actions {
+      margin-top: auto;
+      padding-top: 0.75rem;
+    }
+
+    .card .btn-redo {
+      width: 100%;
+      font-size: 0.85rem;
+      font-weight: 600;
+      padding: 0.5rem 0.9rem;
+      margin: 0;
+    }
+
     .empty {
       text-align: center;
       color: var(--muted);
@@ -263,6 +276,8 @@
     const randomBtn = document.getElementById("randomPrompt");
     const statusEl = document.getElementById("status");
     const gridEl = document.getElementById("grid");
+
+    let currentSongs = [];
 
     function pick(arr) {
       return arr[Math.floor(Math.random() * arr.length)];
@@ -343,12 +358,17 @@
       return pick(patterns)();
     }
 
-    function setLoading(loading) {
+    function setUiBusy(loading, busyLabel) {
       submitBtn.disabled = loading;
       randomBtn.disabled = loading;
       promptEl.disabled = loading;
-      statusEl.textContent = loading ? "Fetching recommendations…" : "";
-      statusEl.classList.remove("error");
+      gridEl.querySelectorAll(".btn-redo").forEach((b) => {
+        b.disabled = loading;
+      });
+      if (loading) {
+        statusEl.textContent = busyLabel;
+        statusEl.classList.remove("error");
+      }
     }
 
     function showError(msg) {
@@ -357,12 +377,17 @@
     }
 
     function renderCards(songs) {
+      currentSongs = songs.map((s) => ({
+        title: s.title || "",
+        artist: s.artist || "",
+        why: s.why || "",
+      }));
       gridEl.innerHTML = "";
-      if (!songs.length) {
+      if (!currentSongs.length) {
         gridEl.innerHTML = '<div class="empty">No songs returned. Try a different prompt.</div>';
         return;
       }
-      songs.forEach((song, i) => {
+      currentSongs.forEach((song, i) => {
         const article = document.createElement("article");
         article.className = "card";
         article.innerHTML = `
@@ -370,10 +395,19 @@
           <h2 class="card-title"></h2>
           <p class="card-artist"></p>
           <p class="card-why"></p>
+          <div class="card-actions">
+            <button type="button" class="btn-secondary btn-redo">Redo</button>
+          </div>
         `;
         article.querySelector(".card-title").textContent = song.title || "—";
         article.querySelector(".card-artist").textContent = song.artist || "—";
         article.querySelector(".card-why").textContent = song.why || "";
+        const redoBtn = article.querySelector(".btn-redo");
+        redoBtn.setAttribute(
+          "aria-label",
+          `Replace track ${i + 1} with a different song for the same prompt`,
+        );
+        redoBtn.addEventListener("click", () => redoTrack(i));
         gridEl.appendChild(article);
       });
     }
@@ -385,7 +419,7 @@
         return;
       }
 
-      setLoading(true);
+      setUiBusy(true, "Fetching recommendations…");
       try {
         const res = await fetch("/api/recommend", {
           method: "POST",
@@ -408,9 +442,64 @@
         statusEl.classList.remove("error");
       } catch (e) {
         showError(e.message || "Something went wrong.");
+        currentSongs = [];
         gridEl.innerHTML = "";
       } finally {
-        setLoading(false);
+        setUiBusy(false);
+      }
+    }
+
+    async function redoTrack(index) {
+      const prompt = promptEl.value.trim();
+      if (!prompt) {
+        showError("Enter what you want to hear.");
+        return;
+      }
+      if (!currentSongs.length || index < 0 || index >= currentSongs.length) {
+        return;
+      }
+
+      const replace = currentSongs[index];
+      const others = currentSongs.filter((_, j) => j !== index);
+
+      setUiBusy(true, "Finding a different track…");
+      try {
+        const res = await fetch("/api/recommend/one", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            prompt,
+            replace: { title: replace.title, artist: replace.artist },
+            others: others.map((s) => ({ title: s.title, artist: s.artist })),
+          }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          const detail = data.detail;
+          const msg =
+            typeof detail === "string"
+              ? detail
+              : Array.isArray(detail)
+                ? detail.map((d) => d.msg || d).join(" ")
+                : res.statusText || "Request failed";
+          throw new Error(msg);
+        }
+        const song = data.song;
+        if (!song) {
+          throw new Error("No replacement song returned.");
+        }
+        currentSongs[index] = {
+          title: song.title || "",
+          artist: song.artist || "",
+          why: song.why || "",
+        };
+        renderCards(currentSongs);
+        statusEl.textContent = `Replaced track ${index + 1} · ${currentSongs.length} tracks total`;
+        statusEl.classList.remove("error");
+      } catch (e) {
+        showError(e.message || "Something went wrong.");
+      } finally {
+        setUiBusy(false);
       }
     }
 
