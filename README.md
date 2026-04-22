@@ -37,8 +37,9 @@ A small **FastAPI** app with a static frontend that suggests **8 songs at a time
 | `index.html` | Main recommender UI. |
 | `favorites.html` | Favorites + in-page **Saved playlists** tab. |
 | `playlists.html` | Standalone saved-playlists view. |
+| `account.html` | Account page for linking streaming services (OAuth). |
 | `requirements.txt` | Python dependencies. |
-| `.env` | **`TOGETHER_API_KEY`** (create locally; do not commit). |
+| `.env` | Local secrets (Together + OAuth). **Do not commit.** |
 
 ---
 
@@ -63,7 +64,7 @@ cd "path\to\song-recommender"
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
+python -m pip install -r requirements.txt
 ```
 
 3. Create **`.env`** in the project root:
@@ -175,7 +176,7 @@ This project now supports real OAuth “linking” for:
 - **Spotify** (OAuth + PKCE)
 - **Google** (OAuth; used for YouTube/YouTube Music access)
 
-Add these to your `.env` (see `.env.example`):
+To enable the **Link** buttons on `/account`, add these to your `.env` (see `.env.example`):
 
 - `SESSION_SECRET`
 - `SPOTIFY_CLIENT_ID`
@@ -188,6 +189,24 @@ For local dev, your redirect URIs should match your `uvicorn` port, e.g.:
 
 - Spotify: `http://127.0.0.1:8010/auth/spotify/callback`
 - Google: `http://127.0.0.1:8010/auth/google/callback`
+
+### OAuth endpoints
+
+- **Spotify**
+  - `GET /auth/spotify/login`
+  - `GET /auth/spotify/callback`
+  - `POST /auth/spotify/logout`
+- **Google**
+  - `GET /auth/google/login`
+  - `GET /auth/google/callback`
+  - `POST /auth/google/logout`
+- **Status used by the Account page**
+  - `GET /api/auth/status`
+
+### Notes
+
+- OAuth tokens are stored in a **server-side session cookie** (no database).
+- Apple Music linking is **not implemented** (requires MusicKit + developer token).
 
 
 ## Current limitations
@@ -209,6 +228,7 @@ For local dev, your redirect URIs should match your `uvicorn` port, e.g.:
 | `ERR_CONNECTION_REFUSED` | Start `uvicorn` again; confirm host/port. |
 | Blank or wrong page on a port | Another app may be using that port — try **`8010`**, **`8011`**, etc. |
 | `500` / “TOGETHER_API_KEY is not set” | Add the key to **`.env`** in the project root and restart the server. |
+| Clicking Link shows an error page | Make sure you set the OAuth variables in `.env` (`SPOTIFY_CLIENT_ID`, `SPOTIFY_REDIRECT_URI`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI`) and restart `uvicorn`. Also ensure the redirect URIs match your port. |
 | `502` on recommend / similar / redo | Check API key, network, and Together status; retry (models occasionally return non-JSON). |
 | Preview always fails | Try a different spelling; not all songs have previews in Apple’s results. |
 | Dependencies error on `together` | Run `pip install -r requirements.txt` again from the activated venv. |
