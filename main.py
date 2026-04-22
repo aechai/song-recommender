@@ -258,6 +258,12 @@ class RecommendRequest(BaseModel):
         min_length=1,
         description="What the user wants (mood, genre, similar artists, etc.)",
     )
+    count: int = Field(
+        default=8,
+        ge=1,
+        le=20,
+        description="How many songs to recommend (1-20).",
+    )
     favorites: list[SongRef] = Field(
         default_factory=list,
         description="Optional saved tracks to steer taste (title + artist).",
@@ -563,10 +569,11 @@ async def preview(
 
 @app.post("/api/recommend")
 async def recommend(body: RecommendRequest) -> dict:
+    n = int(body.count or 8)
     client = get_client()
     system = (
         "You are a music expert. Reply with ONLY valid JSON, no markdown or explanation. "
-        "Return a JSON array of exactly 8 objects. Each object must have: "
+        f"Return a JSON array of exactly {n} objects. Each object must have: "
         '"title" (string), "artist" (string), "why" (one short sentence explaining the pick). '
         "Choose real, well-known songs that fit the user's request."
     )
@@ -615,7 +622,12 @@ async def recommend(body: RecommendRequest) -> dict:
             continue
         normalized.append(normalize_song_item(item))
 
-    return {"songs": normalized}
+    if len(normalized) < n:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Model returned {len(normalized)} songs; expected {n}. Try again.",
+        )
+    return {"songs": normalized[:n]}
 
 
 @app.post("/api/recommend/similar")
