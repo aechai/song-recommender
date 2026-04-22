@@ -250,8 +250,8 @@
     <header>
       <h1>Account</h1>
       <p class="sub">
-        Link streaming services so this app can eventually open songs directly in your accounts.
-        For now, “linking” is stored only in this browser (no real OAuth yet).
+        Link streaming services so this app can open songs in your accounts and (later) export playlists.
+        Spotify and Google (for YouTube/YouTube Music) use real OAuth now.
       </p>
     </header>
 
@@ -264,23 +264,21 @@
   <script>
     const FAVORITES_STORAGE_KEY = "songRecommenderFavorites";
     const PLAYLISTS_STORAGE_KEY = "songRecommenderSavedPlaylists";
-    const LINKED_SERVICES_KEY = "songRecommenderLinkedServices";
-
     const services = [
       {
         id: "spotify",
         name: "Spotify",
-        desc: "Most common for playlist export and deep links.",
+        desc: "Links via Spotify OAuth. Used for opening tracks and future playlist export.",
       },
       {
-        id: "youtube_music",
-        name: "YouTube Music",
-        desc: "Useful if you live in Google’s ecosystem.",
+        id: "google",
+        name: "YouTube Music (Google)",
+        desc: "Links your Google account (YouTube scope). This represents YouTube/YouTube Music access.",
       },
       {
         id: "apple_music",
         name: "Apple Music",
-        desc: "Great for iPhone users (and this app already uses Apple’s preview catalog).",
+        desc: "Not implemented here (Apple Music requires MusicKit + developer token).",
       },
     ];
 
@@ -313,21 +311,28 @@
       if (plNav) plNav.textContent = String(loadSavedPlaylistsLength());
     }
 
-    function loadLinkedServices() {
-      try {
-        const raw = localStorage.getItem(LINKED_SERVICES_KEY);
-        if (!raw) return {};
-        const obj = JSON.parse(raw);
-        return obj && typeof obj === "object" ? obj : {};
-      } catch {
-        return {};
+    async function fetchAuthStatus() {
+      const res = await fetch("/api/auth/status", { headers: { "Accept": "application/json" } });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const detail = typeof data.detail === "string" ? data.detail : "Could not load account status.";
+        throw new Error(detail);
       }
+      return data || {};
     }
 
-    function persistLinkedServices(obj) {
-      try {
-        localStorage.setItem(LINKED_SERVICES_KEY, JSON.stringify(obj));
-      } catch (_) {}
+    async function postJson(url) {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Accept": "application/json" },
+        body: "{}",
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const detail = typeof data.detail === "string" ? data.detail : "Request failed.";
+        throw new Error(detail);
+      }
+      return data;
     }
 
     function setStatus(msg, isError) {
@@ -337,32 +342,38 @@
       statusEl.classList.toggle("error", Boolean(isError));
     }
 
-    function serviceDisplayMeta(linked, svc) {
-      if (!linked || !linked.linkedAt) return "";
-      const who = String(linked.displayName || "").trim();
-      let when = "";
-      try {
-        const d = new Date(linked.linkedAt);
-        when = Number.isNaN(d.getTime()) ? "" : d.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
-      } catch {
-        when = "";
+    function metaForService(svc, status) {
+      if (!status || !status.linked) return "";
+      if (svc.id === "spotify") {
+        const dn = String(status.display_name || "").trim();
+        const sid = String(status.id || "").trim();
+        return dn ? `as ${dn}${sid ? ` · id ${sid}` : ""}` : (sid ? `id ${sid}` : "linked");
       }
-      const parts = [];
-      if (who) parts.push(`as ${who}`);
-      if (when) parts.push(`linked ${when}`);
-      return parts.length ? parts.join(" · ") : `linked`;
+      if (svc.id === "google") {
+        const email = String(status.email || "").trim();
+        const name = String(status.name || "").trim();
+        if (name && email) return `${name} · ${email}`;
+        return name || email || "linked";
+      }
+      return "linked";
     }
 
-    function render() {
+    async function render() {
       const grid = document.getElementById("servicesGrid");
       if (!grid) return;
       grid.innerHTML = "";
 
-      const linked = loadLinkedServices();
+      let linked = {};
+      try {
+        linked = await fetchAuthStatus();
+      } catch (e) {
+        setStatus(e.message || "Could not load account status.", true);
+      }
 
       services.forEach((svc) => {
         const state = linked[svc.id] || null;
         const isLinked = Boolean(state && state.linked);
+        const canOAuth = svc.id === "spotify" || svc.id === "google";
 
         const card = document.createElement("article");
         card.className = "card";
@@ -375,7 +386,6 @@
           <p class="svc-meta" id="meta-${svc.id}"></p>
           <div class="row">
             <button type="button" class="btn-link" id="btnLink-${svc.id}"></button>
-            <button type="button" class="btn-secondary" id="btnRename-${svc.id}">Edit name</button>
             <button type="button" class="btn-danger" id="btnUnlink-${svc.id}">Unlink</button>
           </div>
         `;
@@ -388,55 +398,31 @@
         pill.classList.toggle("on", isLinked);
 
         const meta = card.querySelector(`#meta-${svc.id}`);
-        meta.textContent = serviceDisplayMeta(state, svc);
+        meta.textContent = metaForService(svc, state);
 
         const btnLink = card.querySelector(`#btnLink-${svc.id}`);
         btnLink.textContent = isLinked ? "Re-link" : "Link";
+        btnLink.disabled = !canOAuth;
         btnLink.addEventListener("click", () => {
-          const displayName = window.prompt(
-            `Link ${svc.name}\n\nEnter the account name you want to display (example: your username).`,
-            String((state && state.displayName) || ""),
-          );
-          if (displayName === null) return;
-          linked[svc.id] = {
-            linked: true,
-            displayName: String(displayName || "").trim(),
-            linkedAt: new Date().toISOString(),
-          };
-          persistLinkedServices(linked);
-          setStatus(`${svc.name} linked.`, false);
-          render();
-        });
-
-        const btnRename = card.querySelector(`#btnRename-${svc.id}`);
-        btnRename.disabled = !isLinked;
-        btnRename.addEventListener("click", () => {
-          if (!isLinked) return;
-          const nextName = window.prompt(
-            `Edit display name for ${svc.name}`,
-            String((state && state.displayName) || ""),
-          );
-          if (nextName === null) return;
-          linked[svc.id] = {
-            ...(linked[svc.id] || {}),
-            linked: true,
-            displayName: String(nextName || "").trim(),
-          };
-          persistLinkedServices(linked);
-          setStatus(`Updated ${svc.name} display name.`, false);
-          render();
+          if (!canOAuth) return;
+          if (svc.id === "spotify") window.location.href = "/auth/spotify/login";
+          if (svc.id === "google") window.location.href = "/auth/google/login";
         });
 
         const btnUnlink = card.querySelector(`#btnUnlink-${svc.id}`);
         btnUnlink.disabled = !isLinked;
-        btnUnlink.addEventListener("click", () => {
+        btnUnlink.addEventListener("click", async () => {
           if (!isLinked) return;
           const ok = window.confirm(`Unlink ${svc.name}?`);
           if (!ok) return;
-          delete linked[svc.id];
-          persistLinkedServices(linked);
-          setStatus(`${svc.name} unlinked.`, false);
-          render();
+          try {
+            if (svc.id === "spotify") await postJson("/auth/spotify/logout");
+            if (svc.id === "google") await postJson("/auth/google/logout");
+            setStatus(`${svc.name} unlinked.`, false);
+            await render();
+          } catch (e) {
+            setStatus(e.message || "Could not unlink.", true);
+          }
         });
 
         grid.appendChild(card);
@@ -449,9 +435,6 @@
     window.addEventListener("storage", (e) => {
       if (e.key === FAVORITES_STORAGE_KEY || e.key === PLAYLISTS_STORAGE_KEY) {
         updateNavCounts();
-      }
-      if (e.key === LINKED_SERVICES_KEY) {
-        render();
       }
     });
   </script>

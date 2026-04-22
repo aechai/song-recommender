@@ -93,6 +93,7 @@ Then open **http://127.0.0.1:8010** in your browser.
 | `/` | `index.html` |
 | `/favorites` | `favorites.html` |
 | `/playlists` | `playlists.html` |
+| `/account` | `account.html` |
 
 ---
 
@@ -166,6 +167,28 @@ Response: `{ "preview_url": "<https://…>" }` or **404** if no preview is found
 Counts in the nav update when storage changes (e.g. another tab). **Clearing site data** removes favorites and playlists.
 
 ---
+
+## Linking streaming accounts (OAuth)
+
+This project now supports real OAuth “linking” for:
+
+- **Spotify** (OAuth + PKCE)
+- **Google** (OAuth; used for YouTube/YouTube Music access)
+
+Add these to your `.env` (see `.env.example`):
+
+- `SESSION_SECRET`
+- `SPOTIFY_CLIENT_ID`
+- `SPOTIFY_REDIRECT_URI`
+- `GOOGLE_CLIENT_ID`
+- `GOOGLE_CLIENT_SECRET`
+- `GOOGLE_REDIRECT_URI`
+
+For local dev, your redirect URIs should match your `uvicorn` port, e.g.:
+
+- Spotify: `http://127.0.0.1:8010/auth/spotify/callback`
+- Google: `http://127.0.0.1:8010/auth/google/callback`
+
 
 ## Current limitations
 

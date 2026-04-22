@@ -1,13 +1,18 @@
 import json
 import os
 import re
+import base64
+import hashlib
+import secrets
+import time
 from pathlib import Path
 
 import httpx
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, Query
-from fastapi.responses import FileResponse
+from fastapi import FastAPI, HTTPException, Query, Request
+from fastapi.responses import FileResponse, RedirectResponse
 from pydantic import BaseModel, Field
+from starlette.middleware.sessions import SessionMiddleware
 from together import Together
 
 load_dotenv()
@@ -19,6 +24,156 @@ ITUNES_SEARCH_URL = "https://itunes.apple.com/search"
 ITUNES_HEADERS = {"User-Agent": "SongRecommender/1.0"}
 
 app = FastAPI(title="Song Recommender")
+
+SESSION_SECRET = os.getenv("SESSION_SECRET", "")
+if not SESSION_SECRET:
+    SESSION_SECRET = secrets.token_urlsafe(32)
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=SESSION_SECRET,
+    same_site="lax",
+    https_only=False,
+)
+
+
+def _base64url(b: bytes) -> str:
+    return base64.urlsafe_b64encode(b).rstrip(b"=").decode("ascii")
+
+
+def _pkce_verifier() -> str:
+    return _base64url(secrets.token_bytes(32))
+
+
+def _pkce_challenge(verifier: str) -> str:
+    digest = hashlib.sha256(verifier.encode("ascii")).digest()
+    return _base64url(digest)
+
+
+def _now() -> int:
+    return int(time.time())
+
+
+async def _http_post_form(url: str, data: dict, headers: dict | None = None) -> dict:
+    async with httpx.AsyncClient(timeout=20.0) as client:
+        r = await client.post(url, data=data, headers=headers)
+    try:
+        payload = r.json()
+    except Exception:
+        payload = {}
+    if r.status_code >= 400:
+        detail = payload.get("error_description") or payload.get("error") or r.text
+        raise HTTPException(status_code=502, detail=str(detail))
+    if not isinstance(payload, dict):
+        raise HTTPException(status_code=502, detail="Unexpected token response.")
+    return payload
+
+
+async def _http_get_json(url: str, headers: dict) -> dict:
+    async with httpx.AsyncClient(timeout=20.0) as client:
+        r = await client.get(url, headers=headers)
+    try:
+        payload = r.json()
+    except Exception:
+        payload = {}
+    if r.status_code >= 400:
+        detail = payload.get("error") or payload.get("message") or r.text
+        raise HTTPException(status_code=502, detail=str(detail))
+    if not isinstance(payload, dict):
+        raise HTTPException(status_code=502, detail="Unexpected profile response.")
+    return payload
+
+
+def _get_session(request) -> dict:
+    try:
+        return request.session  # type: ignore[attr-defined]
+    except Exception:
+        raise HTTPException(status_code=500, detail="Session middleware not available.")
+
+
+def _redirect_uri_from_env(var: str) -> str:
+    v = os.getenv(var, "").strip()
+    if not v:
+        raise HTTPException(status_code=500, detail=f"{var} is not set in .env")
+    return v
+
+
+def _env_required(var: str) -> str:
+    v = os.getenv(var, "").strip()
+    if not v:
+        raise HTTPException(status_code=500, detail=f"{var} is not set in .env")
+    return v
+
+
+def _spotify_token(session: dict) -> dict | None:
+    tok = session.get("spotify_token")
+    return tok if isinstance(tok, dict) else None
+
+
+def _google_token(session: dict) -> dict | None:
+    tok = session.get("google_token")
+    return tok if isinstance(tok, dict) else None
+
+
+async def _spotify_access_token(session: dict) -> str | None:
+    tok = _spotify_token(session)
+    if not tok:
+        return None
+    access = str(tok.get("access_token", "")).strip()
+    exp = int(tok.get("expires_at", 0) or 0)
+    refresh = str(tok.get("refresh_token", "")).strip()
+    if access and exp and exp - 30 > _now():
+        return access
+    if not refresh:
+        return access or None
+    client_id = _env_required("SPOTIFY_CLIENT_ID")
+    payload = await _http_post_form(
+        "https://accounts.spotify.com/api/token",
+        data={
+            "grant_type": "refresh_token",
+            "refresh_token": refresh,
+            "client_id": client_id,
+        },
+    )
+    new_access = str(payload.get("access_token", "")).strip()
+    expires_in = int(payload.get("expires_in", 0) or 0)
+    if not new_access or not expires_in:
+        return access or None
+    tok["access_token"] = new_access
+    tok["expires_at"] = _now() + expires_in
+    session["spotify_token"] = tok
+    return new_access
+
+
+async def _google_access_token(session: dict) -> str | None:
+    tok = _google_token(session)
+    if not tok:
+        return None
+    access = str(tok.get("access_token", "")).strip()
+    exp = int(tok.get("expires_at", 0) or 0)
+    refresh = str(tok.get("refresh_token", "")).strip()
+    if access and exp and exp - 30 > _now():
+        return access
+    if not refresh:
+        return access or None
+    client_id = _env_required("GOOGLE_CLIENT_ID")
+    client_secret = _env_required("GOOGLE_CLIENT_SECRET")
+    payload = await _http_post_form(
+        "https://oauth2.googleapis.com/token",
+        data={
+            "client_id": client_id,
+            "client_secret": client_secret,
+            "grant_type": "refresh_token",
+            "refresh_token": refresh,
+        },
+    )
+    new_access = str(payload.get("access_token", "")).strip()
+    expires_in = int(payload.get("expires_in", 0) or 0)
+    if not new_access or not expires_in:
+        return access or None
+    tok["access_token"] = new_access
+    tok["expires_at"] = _now() + expires_in
+    session["google_token"] = tok
+    return new_access
 
 
 def get_client() -> Together:
@@ -174,6 +329,192 @@ async def serve_playlists() -> FileResponse:
 @app.get("/account")
 async def serve_account() -> FileResponse:
     return FileResponse(BASE_DIR / "account.html")
+
+
+@app.get("/api/auth/status")
+async def auth_status(request: Request) -> dict:
+    session = _get_session(request)
+    out: dict = {"spotify": {"linked": False}, "google": {"linked": False}}
+
+    sp_access = await _spotify_access_token(session)
+    if sp_access:
+        try:
+            me = await _http_get_json(
+                "https://api.spotify.com/v1/me",
+                headers={"Authorization": f"Bearer {sp_access}"},
+            )
+            out["spotify"] = {
+                "linked": True,
+                "id": me.get("id"),
+                "display_name": me.get("display_name"),
+            }
+        except HTTPException:
+            out["spotify"] = {"linked": False}
+
+    g_access = await _google_access_token(session)
+    if g_access:
+        try:
+            info = await _http_get_json(
+                "https://www.googleapis.com/oauth2/v2/userinfo",
+                headers={"Authorization": f"Bearer {g_access}"},
+            )
+            out["google"] = {
+                "linked": True,
+                "email": info.get("email"),
+                "name": info.get("name"),
+            }
+        except HTTPException:
+            out["google"] = {"linked": False}
+
+    return out
+
+
+@app.get("/auth/spotify/login")
+async def spotify_login(request: Request) -> RedirectResponse:
+    client_id = _env_required("SPOTIFY_CLIENT_ID")
+    redirect_uri = _redirect_uri_from_env("SPOTIFY_REDIRECT_URI")
+    session = _get_session(request)
+
+    verifier = _pkce_verifier()
+    challenge = _pkce_challenge(verifier)
+    state = secrets.token_urlsafe(24)
+    session["spotify_pkce_verifier"] = verifier
+    session["spotify_state"] = state
+
+    scope = "user-read-email user-read-private"
+    params = {
+        "response_type": "code",
+        "client_id": client_id,
+        "redirect_uri": redirect_uri,
+        "state": state,
+        "code_challenge_method": "S256",
+        "code_challenge": challenge,
+        "scope": scope,
+    }
+    url = httpx.URL("https://accounts.spotify.com/authorize").copy_merge_params(params)
+    return RedirectResponse(str(url))
+
+
+@app.get("/auth/spotify/callback")
+async def spotify_callback(request: Request, code: str = "", state: str = "") -> RedirectResponse:
+    session = _get_session(request)
+    expected_state = str(session.get("spotify_state", "")).strip()
+    verifier = str(session.get("spotify_pkce_verifier", "")).strip()
+    if not code or not state:
+        raise HTTPException(status_code=400, detail="Missing code/state.")
+    if not expected_state or state != expected_state:
+        raise HTTPException(status_code=400, detail="Invalid state.")
+    if not verifier:
+        raise HTTPException(status_code=400, detail="Missing PKCE verifier.")
+
+    client_id = _env_required("SPOTIFY_CLIENT_ID")
+    redirect_uri = _redirect_uri_from_env("SPOTIFY_REDIRECT_URI")
+
+    payload = await _http_post_form(
+        "https://accounts.spotify.com/api/token",
+        data={
+            "grant_type": "authorization_code",
+            "code": code,
+            "redirect_uri": redirect_uri,
+            "client_id": client_id,
+            "code_verifier": verifier,
+        },
+    )
+
+    access_token = str(payload.get("access_token", "")).strip()
+    refresh_token = str(payload.get("refresh_token", "")).strip()
+    expires_in = int(payload.get("expires_in", 0) or 0)
+    if not access_token or not expires_in:
+        raise HTTPException(status_code=502, detail="Spotify token exchange failed.")
+
+    session["spotify_token"] = {
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "expires_at": _now() + expires_in,
+    }
+    session.pop("spotify_state", None)
+    session.pop("spotify_pkce_verifier", None)
+    return RedirectResponse("/account")
+
+
+@app.post("/auth/spotify/logout")
+async def spotify_logout(request: Request) -> dict:
+    session = _get_session(request)
+    session.pop("spotify_token", None)
+    session.pop("spotify_state", None)
+    session.pop("spotify_pkce_verifier", None)
+    return {"ok": True}
+
+
+@app.get("/auth/google/login")
+async def google_login(request: Request) -> RedirectResponse:
+    client_id = _env_required("GOOGLE_CLIENT_ID")
+    redirect_uri = _redirect_uri_from_env("GOOGLE_REDIRECT_URI")
+    session = _get_session(request)
+
+    state = secrets.token_urlsafe(24)
+    session["google_state"] = state
+
+    scope = "openid email profile https://www.googleapis.com/auth/youtube.readonly"
+    params = {
+        "response_type": "code",
+        "client_id": client_id,
+        "redirect_uri": redirect_uri,
+        "scope": scope,
+        "state": state,
+        "access_type": "offline",
+        "include_granted_scopes": "true",
+        "prompt": "consent",
+    }
+    url = httpx.URL("https://accounts.google.com/o/oauth2/v2/auth").copy_merge_params(params)
+    return RedirectResponse(str(url))
+
+
+@app.get("/auth/google/callback")
+async def google_callback(request: Request, code: str = "", state: str = "") -> RedirectResponse:
+    session = _get_session(request)
+    expected_state = str(session.get("google_state", "")).strip()
+    if not code or not state:
+        raise HTTPException(status_code=400, detail="Missing code/state.")
+    if not expected_state or state != expected_state:
+        raise HTTPException(status_code=400, detail="Invalid state.")
+
+    client_id = _env_required("GOOGLE_CLIENT_ID")
+    client_secret = _env_required("GOOGLE_CLIENT_SECRET")
+    redirect_uri = _redirect_uri_from_env("GOOGLE_REDIRECT_URI")
+
+    payload = await _http_post_form(
+        "https://oauth2.googleapis.com/token",
+        data={
+            "code": code,
+            "client_id": client_id,
+            "client_secret": client_secret,
+            "redirect_uri": redirect_uri,
+            "grant_type": "authorization_code",
+        },
+    )
+
+    access_token = str(payload.get("access_token", "")).strip()
+    refresh_token = str(payload.get("refresh_token", "")).strip()
+    expires_in = int(payload.get("expires_in", 0) or 0)
+    if not access_token or not expires_in:
+        raise HTTPException(status_code=502, detail="Google token exchange failed.")
+
+    session["google_token"] = {
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "expires_at": _now() + expires_in,
+    }
+    session.pop("google_state", None)
+    return RedirectResponse("/account")
+
+
+@app.post("/auth/google/logout")
+async def google_logout(request: Request) -> dict:
+    session = _get_session(request)
+    session.pop("google_token", None)
+    session.pop("google_state", None)
+    return {"ok": True}
 
 
 @app.get("/api/preview")
