@@ -9,6 +9,7 @@ A small **FastAPI** app with a static frontend that suggests **8 songs at a time
 | Area | What it does |
 |------|----------------|
 | **Recommendations** | Enter a vibe, genre, artist, or scenario; the model returns **8** tracks with a short **why** for each. |
+| **Music personality quiz** | On **`/personality-quiz`**, answer **5** multiple-choice questions; the model returns a **musical persona** plus **20** song picks with a short **why** each (answers are sent as `Quiz Results: …` to **`POST /api/recommend`**). Same previews, optional favorites-as-context, redo / more-like, hearts, and save-playlist as the main UI. |
 | **Favorites as context** | Optional checkbox sends up to **40** saved favorites (title + artist) with the prompt so picks align with taste. |
 | **Redo one track** | Replace a single card with another song that still fits the same prompt (avoids duplicates with the rest of the list and favorites). |
 | **More like this** | Pick one result; the app fetches **7** similar songs and shows **8** tracks total with your pick **first**. |
@@ -18,6 +19,7 @@ A small **FastAPI** app with a static frontend that suggests **8 songs at a time
 | **Playlists page** | **`/playlists`** lists saved playlists, optional saved **request** text, ordered tracks (title — artist), and delete. |
 | **Favorites page tabs** | On **`/favorites`**, switch between **Favorite tracks** and **Saved playlists** without leaving the page. |
 
+
 ---
 
 ## Tech stack
@@ -25,7 +27,7 @@ A small **FastAPI** app with a static frontend that suggests **8 songs at a time
 - **Backend:** FastAPI, Pydantic, httpx, python-dotenv, **Together** Python SDK.
 - **Models (Together):** Primary `meta-llama/Llama-3-70b-chat-hf`, fallback `meta-llama/Llama-3.3-70B-Instruct-Turbo` if the primary call fails.
 - **Previews:** Apple iTunes Search API (`https://itunes.apple.com/search`) — **no API key**.
-- **Frontend:** Static `index.html`, `favorites.html`, `playlists.html` (vanilla JS, `localStorage`).
+- **Frontend:** Static `index.html`, `personality-quiz.html`, `favorites.html`, `playlists.html` (vanilla JS, `localStorage`).
 
 ---
 
@@ -34,7 +36,8 @@ A small **FastAPI** app with a static frontend that suggests **8 songs at a time
 | Path | Role |
 |------|------|
 | `main.py` | FastAPI app, Together chat calls, JSON parsing/retries, iTunes preview proxy. |
-| `index.html` | Main recommender UI. |
+| `index.html` | Main recommender UI (describe-based flow). |
+| `personality-quiz.html` | Musical Personality Quiz UI (separate page). |
 | `favorites.html` | Favorites + in-page **Saved playlists** tab. |
 | `playlists.html` | Standalone saved-playlists view. |
 | `account.html` | Account page for linking streaming services (OAuth). |
@@ -92,6 +95,7 @@ Then open **http://127.0.0.1:8010** in your browser.
 | Route | File |
 |------|------|
 | `/` | `index.html` |
+| `/personality-quiz` | `personality-quiz.html` |
 | `/favorites` | `favorites.html` |
 | `/playlists` | `playlists.html` |
 | `/account` | `account.html` |

@@ -20,6 +20,8 @@ load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent
 MODEL_ID = "meta-llama/Llama-3-70b-chat-hf"
 FALLBACK_MODEL_ID = "meta-llama/Llama-3.3-70B-Instruct-Turbo"
+RECOMMEND_COUNT = 20
+QUIZ_SONG_COUNT = 20
 ITUNES_SEARCH_URL = "https://itunes.apple.com/search"
 ITUNES_HEADERS = {"User-Agent": "SongRecommender/1.0"}
 
@@ -186,15 +188,54 @@ def get_client() -> Together:
     return Together(api_key=key)
 
 
-def parse_song_json(raw: str) -> list[dict]:
+def _strip_code_fence(raw: str) -> str:
     text = raw.strip()
     if text.startswith("```"):
         text = re.sub(r"^```(?:json)?\s*", "", text, flags=re.IGNORECASE)
         text = re.sub(r"\s*```$", "", text)
-    data = json.loads(text)
+    return text
+
+
+def parse_song_json(raw: str) -> list[dict]:
+    data = json.loads(_strip_code_fence(raw))
     if not isinstance(data, list):
         raise ValueError("Response must be a JSON array")
     return data
+
+
+def _extract_quiz_persona(obj: dict) -> str:
+    for key in ("persona", "musical_persona", "musicalPersona", "musical_persona_name", "name"):
+        v = obj.get(key)
+        if isinstance(v, str) and v.strip():
+            return v.strip()
+    return ""
+
+
+def _songs_key_from_obj(obj: dict) -> list | None:
+    for key in ("songs", "tracks", "recommendations", "results", "picks"):
+        v = obj.get(key)
+        if isinstance(v, list) and v:
+            return v
+    return None
+
+
+def parse_quiz_response_json(raw: str) -> tuple[str, list[dict]]:
+    """Quiz returns JSON object {{persona, songs}} or a bare array of songs."""
+    data = json.loads(_strip_code_fence(raw))
+    if isinstance(data, list):
+        if not data:
+            raise ValueError("Quiz response was an empty list")
+        return "Your musical persona", data
+    if not isinstance(data, dict):
+        raise ValueError("Quiz response must be a JSON object or array")
+
+    persona = _extract_quiz_persona(data)
+    songs = _songs_key_from_obj(data)
+    if not isinstance(songs, list) or not songs:
+        raise ValueError("Quiz response must include a non-empty songs array (or a top-level array)")
+    if not persona:
+        persona = "Your musical persona"
+    return persona, songs
 
 
 def normalize_song_item(item: dict) -> dict:
@@ -222,7 +263,12 @@ def is_duplicate_song(
     return k in other_keys
 
 
-def request_recommendations(client: Together, messages: list[dict]) -> str:
+def request_recommendations(
+    client: Together,
+    messages: list[dict],
+    *,
+    max_tokens: int = 2048,
+) -> str:
     models_to_try = [MODEL_ID, FALLBACK_MODEL_ID]
     errors = []
 
@@ -232,7 +278,7 @@ def request_recommendations(client: Together, messages: list[dict]) -> str:
                 model=model_name,
                 messages=messages,
                 temperature=0.7,
-                max_tokens=2048,
+                max_tokens=max_tokens,
             )
             content = response.choices[0].message.content
             if content:
@@ -330,6 +376,11 @@ async def serve_favorites() -> FileResponse:
 @app.get("/playlists")
 async def serve_playlists() -> FileResponse:
     return FileResponse(BASE_DIR / "playlists.html")
+
+
+@app.get("/personality-quiz")
+async def serve_personality_quiz() -> FileResponse:
+    return FileResponse(BASE_DIR / "personality-quiz.html")
 
 
 @app.get("/account")
@@ -571,19 +622,37 @@ async def preview(
 async def recommend(body: RecommendRequest) -> dict:
     n = int(body.count or 8)
     client = get_client()
-    system = (
-        "You are a music expert. Reply with ONLY valid JSON, no markdown or explanation. "
-        f"Return a JSON array of exactly {n} objects. Each object must have: "
-        '"title" (string), "artist" (string), "why" (one short sentence explaining the pick). '
-        "Choose real, well-known songs that fit the user's request."
-    )
     favs = _trim_favorites(body.favorites)
     user = f"Song recommendations for: {body.prompt}"
     if favs:
         user += favorites_context_block(favs)
 
-    parse_errors = []
-    songs = None
+    quiz = body.prompt.strip().startswith("Quiz Results:")
+
+    if quiz:
+        system = (
+            "You are a music expert. Reply with ONLY valid JSON, no markdown or explanation. "
+            f'The user completed a "Musical Personality Quiz." Their answers begin with the prefix "Quiz Results:". '
+            f"1) Invent a short, memorable musical persona name (2–5 words) that fits their style, e.g. "
+            f"\"The Melancholic Explorer\". Use the JSON key \"persona\" (string) for that name. "
+            f"2) Recommend exactly {QUIZ_SONG_COUNT} real, well-known songs that fit that persona. "
+            f"Each item in the songs array must have: "
+            f'"title" (string), "artist" (string), "why" (one short sentence: why it fits the persona). '
+            f"Output a single JSON object with exactly two keys: \"persona\" and \"songs\". "
+            f'"songs" must be an array of exactly {QUIZ_SONG_COUNT} objects.'
+        )
+    else:
+        system = (
+            "You are a music expert. Reply with ONLY valid JSON, no markdown or explanation. "
+            f"Return a JSON array of exactly {n} objects. Each object must have: "
+            '"title" (string), "artist" (string), "why" (one short sentence explaining the pick). '
+            "Choose real, well-known songs that fit the user's request."
+        )
+
+    parse_errors: list[str] = []
+    songs: list[dict] | None = None
+    persona: str | None = None
+    max_tokens = 4096 if quiz else 2048
     base_messages = [
         {"role": "system", "content": system},
         {"role": "user", "content": user},
@@ -592,19 +661,25 @@ async def recommend(body: RecommendRequest) -> dict:
     for attempt in range(3):
         messages = list(base_messages)
         if attempt > 0:
-            messages.append(
-                {
-                    "role": "user",
-                    "content": (
-                        "Your previous reply was not valid JSON. "
-                        "Reply again with ONLY a valid JSON array and no extra text."
-                    ),
-                }
-            )
+            if quiz:
+                fix = (
+                    "Your previous reply was not valid JSON. Reply again with ONLY one JSON object with keys "
+                    f'"persona" (string) and "songs" (array of exactly {QUIZ_SONG_COUNT} objects with title, artist, why).'
+                )
+            else:
+                fix = (
+                    "Your previous reply was not valid JSON. Reply again with ONLY a valid JSON array "
+                    f"of exactly {n} objects and no extra text."
+                )
+            messages.append({"role": "user", "content": fix})
 
-        content = request_recommendations(client, messages)
+        content = request_recommendations(client, messages, max_tokens=max_tokens)
         try:
-            songs = parse_song_json(content)
+            if quiz:
+                persona, raw = parse_quiz_response_json(content)
+                songs = raw
+            else:
+                songs = parse_song_json(content)
             break
         except (json.JSONDecodeError, ValueError) as e:
             parse_errors.append(str(e))
@@ -622,6 +697,17 @@ async def recommend(body: RecommendRequest) -> dict:
             continue
         normalized.append(normalize_song_item(item))
 
+    if quiz:
+        normalized = normalized[:QUIZ_SONG_COUNT]
+        if len(normalized) < QUIZ_SONG_COUNT:
+            raise HTTPException(
+                status_code=502,
+                detail=f"Model returned {len(normalized)} songs; expected {QUIZ_SONG_COUNT}. Try again.",
+            )
+        return {
+            "songs": normalized,
+            "persona": persona or "Your musical persona",
+        }
     if len(normalized) < n:
         raise HTTPException(
             status_code=502,
