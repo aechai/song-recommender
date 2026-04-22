@@ -171,6 +171,11 @@ async def serve_playlists() -> FileResponse:
     return FileResponse(BASE_DIR / "playlists.html")
 
 
+@app.get("/account")
+async def serve_account() -> FileResponse:
+    return FileResponse(BASE_DIR / "account.html")
+
+
 @app.get("/api/preview")
 async def preview(
     title: str = Query(default="", max_length=220),

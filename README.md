@@ -198,7 +198,3 @@ Counts in the nav update when storage changes (e.g. another tab). **Clearing sit
 - Do **not** commit `.env`; it should stay in `.gitignore`.
 
 ---
-
-## License / course use
-
-This repository is suitable for coursework. Add your own license or attribution if you publish it beyond class.
