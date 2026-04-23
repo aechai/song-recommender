@@ -1,0 +1,1429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Musical Personality Quiz — Song Recommender</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0c0d12;
+      --bg-elevated: #14151c;
+      --border: rgba(255, 255, 255, 0.08);
+      --text: #e8e9ed;
+      --muted: #8b8f9a;
+      --accent: #7c5cff;
+      --accent-dim: rgba(124, 92, 255, 0.15);
+      --danger: #f87171;
+      --radius: 14px;
+      --shadow: 0 18px 50px rgba(0, 0, 0, 0.45);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "DM Sans", system-ui, sans-serif;
+      background: radial-gradient(1200px 600px at 10% -10%, rgba(124, 92, 255, 0.18), transparent 55%),
+        radial-gradient(900px 500px at 90% 0%, rgba(56, 189, 248, 0.1), transparent 50%),
+        var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    html {
+      background-color: #0c0d12;
+      color: #e8e9ed;
+    }
+
+    .wrap {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 2.5rem 1.25rem 4rem;
+    }
+
+    header {
+      margin-bottom: 2rem;
+    }
+
+    .site-nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem 1.25rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .nav-link {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--muted);
+      text-decoration: none;
+      border-radius: 999px;
+      padding: 0.35rem 0.85rem;
+      border: 1px solid transparent;
+      transition: color 0.15s, border-color 0.15s, background 0.15s;
+    }
+
+    .nav-link:hover {
+      color: var(--text);
+      border-color: var(--border);
+      background: var(--bg-elevated);
+    }
+
+    .nav-link[aria-current="page"] {
+      color: var(--text);
+      border-color: rgba(124, 92, 255, 0.35);
+      background: var(--accent-dim);
+    }
+
+    .nav-count {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 0.75rem;
+      opacity: 0.9;
+    }
+
+    h1 {
+      font-size: clamp(1.75rem, 4vw, 2.25rem);
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      margin: 0 0 0.5rem;
+    }
+
+    .sub {
+      color: var(--muted);
+      font-size: 1rem;
+      max-width: 42ch;
+    }
+
+    .panel {
+      background: linear-gradient(145deg, rgba(255, 255, 255, 0.04), transparent);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem;
+      box-shadow: var(--shadow);
+      margin-bottom: 2rem;
+    }
+
+    label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--muted);
+      margin-bottom: 0.5rem;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 110px;
+      resize: vertical;
+      padding: 0.85rem 1rem;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--bg-elevated);
+      color: var(--text);
+      font-family: inherit;
+      font-size: 1rem;
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+
+    textarea:focus {
+      border-color: rgba(124, 92, 255, 0.5);
+      box-shadow: 0 0 0 3px var(--accent-dim);
+    }
+
+    textarea::placeholder {
+      color: #5c5f6a;
+    }
+
+    .row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      align-items: center;
+      margin-top: 1rem;
+    }
+
+    button {
+      font-family: inherit;
+      font-weight: 600;
+      font-size: 0.95rem;
+      padding: 0.65rem 1.35rem;
+      border-radius: 999px;
+      border: none;
+      cursor: pointer;
+      background: linear-gradient(135deg, var(--accent), #5b8cff);
+      color: #fff;
+      box-shadow: 0 8px 24px rgba(124, 92, 255, 0.35);
+      transition: transform 0.12s, filter 0.12s, opacity 0.12s;
+    }
+
+    button:hover:not(:disabled) {
+      filter: brightness(1.06);
+      transform: translateY(-1px);
+    }
+
+    button:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    button.btn-secondary {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--border);
+      box-shadow: none;
+    }
+
+    button.btn-secondary:hover:not(:disabled) {
+      border-color: rgba(124, 92, 255, 0.45);
+      background: var(--accent-dim);
+    }
+
+    .hint {
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    .favorites-opt-row {
+      margin-top: 0.75rem;
+      padding-top: 0.85rem;
+      border-top: 1px solid var(--border);
+    }
+
+    .favorites-opt-row.favorites-opt-disabled {
+      opacity: 0.55;
+    }
+
+    .favorites-opt-label {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.55rem;
+      font-size: 0.92rem;
+      color: var(--text);
+      cursor: pointer;
+      font-weight: 500;
+    }
+
+    .favorites-opt-label input {
+      margin-top: 0.2rem;
+      accent-color: var(--accent);
+      width: 1.05rem;
+      height: 1.05rem;
+      flex-shrink: 0;
+    }
+
+    .favorites-opt-hint {
+      margin: 0.45rem 0 0 1.65rem;
+      font-size: 0.8rem;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+
+    .status {
+      font-size: 0.9rem;
+      min-height: 1.4em;
+      color: var(--muted);
+    }
+
+    .status.error {
+      color: var(--danger);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 1rem;
+    }
+
+    .card {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.1rem 1.15rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      transition: border-color 0.15s, transform 0.15s;
+    }
+
+    .card:hover {
+      border-color: rgba(124, 92, 255, 0.35);
+      transform: translateY(-2px);
+    }
+
+    .card-header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .card-num {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 0.7rem;
+      font-weight: 500;
+      color: var(--accent);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .btn-heart {
+      flex-shrink: 0;
+      width: 2.25rem;
+      height: 2.25rem;
+      padding: 0;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      font-size: 1rem;
+      line-height: 1;
+      cursor: pointer;
+      box-shadow: none;
+      transition: color 0.15s, border-color 0.15s, background 0.15s;
+    }
+
+    .btn-heart:hover:not(:disabled) {
+      color: #f472b6;
+      border-color: rgba(244, 114, 182, 0.45);
+      background: rgba(244, 114, 182, 0.08);
+    }
+
+    .btn-heart.is-favorited {
+      color: #f472b6;
+      border-color: rgba(244, 114, 182, 0.55);
+      background: rgba(244, 114, 182, 0.14);
+    }
+
+    .btn-heart:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    .card-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      margin: 0;
+    }
+
+    .card-artist {
+      font-size: 0.95rem;
+      color: var(--muted);
+      margin: 0;
+    }
+
+    .card-why {
+      font-size: 0.88rem;
+      color: #a4a8b5;
+      margin: 0.35rem 0 0;
+      padding-top: 0.65rem;
+      border-top: 1px solid var(--border);
+      line-height: 1.45;
+    }
+
+    .card-actions {
+      margin-top: auto;
+      padding-top: 0.75rem;
+    }
+
+    .card-actions-row {
+      display: flex;
+      gap: 0.5rem;
+      align-items: stretch;
+    }
+
+    .card-actions-row .btn-play {
+      flex: 1.15;
+      font-family: inherit;
+      font-weight: 600;
+      font-size: 1rem;
+      line-height: 1;
+      min-width: 2.5rem;
+      padding: 0.5rem 0.75rem;
+      margin: 0;
+      border-radius: 999px;
+      border: none;
+      cursor: pointer;
+      background: linear-gradient(135deg, var(--accent), #5b8cff);
+      color: #fff;
+      box-shadow: 0 6px 18px rgba(124, 92, 255, 0.28);
+      transition: transform 0.12s, filter 0.12s, opacity 0.12s;
+    }
+
+    .card-actions-row .btn-play:hover:not(:disabled) {
+      filter: brightness(1.06);
+      transform: translateY(-1px);
+    }
+
+    .card-actions-row .btn-play:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .card-actions-row .btn-redo {
+      flex: 1;
+      width: auto;
+      min-width: 0;
+      font-size: 0.85rem;
+      font-weight: 600;
+      padding: 0.5rem 0.75rem;
+      margin: 0;
+    }
+
+    .btn-more-like {
+      width: 100%;
+      margin-top: 0.45rem;
+      font-size: 0.82rem;
+      font-weight: 600;
+      padding: 0.45rem 0.65rem;
+    }
+
+    .btn-more-like:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    .empty {
+      text-align: center;
+      color: var(--muted);
+      padding: 2rem 1rem;
+      border: 1px dashed var(--border);
+      border-radius: 12px;
+    }
+
+    .card.is-playing {
+      border-color: rgba(124, 92, 255, 0.5);
+      box-shadow: 0 0 0 1px rgba(124, 92, 255, 0.2);
+    }
+
+    .playlist-bar {
+      margin-bottom: 1.25rem;
+    }
+
+    .playlist-bar.hidden {
+      display: none;
+    }
+
+    .playlist-bar-inner {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1rem 1.15rem;
+    }
+
+    .playlist-now {
+      margin: 0 0 0.75rem;
+      font-size: 0.92rem;
+      color: var(--muted);
+    }
+
+    .playlist-bar-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      align-items: center;
+    }
+
+    .playlist-bar-row button {
+      font-size: 1.15rem;
+      line-height: 1;
+      padding: 0.55rem 0.85rem;
+      min-width: 2.5rem;
+    }
+
+    .playlist-bar-row #savePlaylistBtn {
+      font-size: 0.82rem;
+      font-weight: 600;
+      font-family: inherit;
+      min-width: auto;
+      padding: 0.5rem 0.85rem;
+    }
+
+    .playlist-hint {
+      margin: 0.65rem 0 0;
+      font-size: 0.78rem;
+      color: #6b6f7a;
+      line-height: 1.4;
+    }
+
+    .shared-status {
+      margin: 0 0 1rem;
+    }
+
+    .personality-quiz-title {
+      margin: 0 0 0.75rem;
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .quiz-block {
+      margin-bottom: 1.25rem;
+    }
+
+    .quiz-block:last-of-type {
+      margin-bottom: 0.75rem;
+    }
+
+    .quiz-block label.quiz-q {
+      font-size: 0.9rem;
+      color: var(--text);
+    }
+
+    .quiz-select {
+      width: 100%;
+      margin-top: 0.4rem;
+      padding: 0.65rem 0.75rem;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--bg-elevated);
+      color: var(--text);
+      font-family: inherit;
+      font-size: 0.95rem;
+      outline: none;
+    }
+
+    .quiz-select:focus {
+      border-color: rgba(124, 92, 255, 0.5);
+      box-shadow: 0 0 0 3px var(--accent-dim);
+    }
+
+    .persona-banner {
+      margin-bottom: 1.25rem;
+      padding: 1.25rem 1.35rem;
+      border-radius: 14px;
+      border: 1px solid rgba(124, 92, 255, 0.35);
+      background: linear-gradient(135deg, rgba(124, 92, 255, 0.14), rgba(56, 189, 248, 0.08));
+      text-align: center;
+    }
+
+    .persona-banner.hidden {
+      display: none;
+    }
+
+    .persona-label {
+      margin: 0 0 0.4rem;
+      font-size: 0.72rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      color: #a8a8b8;
+    }
+
+    .persona-name {
+      margin: 0;
+      font-size: clamp(1.35rem, 3.5vw, 1.85rem);
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      color: var(--text);
+      line-height: 1.25;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      button,
+      .card,
+      .card-actions-row .btn-play {
+        transition: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <nav class="site-nav" aria-label="Site">
+      <a href="/" class="nav-link">Recommend songs</a>
+      <a href="/favorites" class="nav-link">Favorite tracks <span class="nav-count" id="favoritesNavCount">0</span></a>
+      <a href="/playlists" class="nav-link">Saved playlists <span class="nav-count" id="savedPlaylistsNavCount">0</span></a>
+      <a href="/personality-quiz" class="nav-link" aria-current="page">Personality quiz</a>
+      <a href="/account" class="nav-link">Account</a>
+    </nav>
+
+    <header>
+      <h1>Musical Personality Quiz</h1>
+      <p class="sub">Answer 5 questions, then <strong>Find My Persona</strong> for a named musical persona and <strong>20</strong> song picks with a short &ldquo;why&rdquo; each. <a href="/" style="color: var(--accent); font-weight: 600">← Back to describe</a></p>
+    </header>
+
+    <p class="status shared-status" id="status" role="status" aria-live="polite"></p>
+
+    <section id="panel-personality" class="panel" aria-label="Musical Personality Quiz">
+        <h2 class="personality-quiz-title" id="heading-personality" style="scroll-margin-top: 0.5rem">Musical Personality Quiz</h2>
+        <p class="sub" style="margin: 0 0 1.25rem; max-width: none">
+          Answer all 5 questions, then we will name your <strong>musical persona</strong> and suggest <strong>20 songs</strong> with a short &ldquo;why&rdquo; each.
+        </p>
+
+        <div class="quiz-block">
+          <label class="quiz-q" for="quizEnergy">Energy level</label>
+          <select class="quiz-select" id="quizEnergy" name="quizEnergy" autocomplete="off">
+            <option value="" disabled selected>Choose…</option>
+            <option value="I prefer low-key, soft, and intimate energy">Low — soft, intimate, minimal</option>
+            <option value="I like a balanced, medium energy">Medium — balanced and versatile</option>
+            <option value="I want high energy, loud, and driving">High — loud, driving, and intense</option>
+            <option value="My energy shifts a lot; I like variety and surprise">Varies — unpredictable ups and downs</option>
+          </select>
+        </div>
+
+        <div class="quiz-block">
+          <label class="quiz-q" for="quizEnvironment">Where I listen most</label>
+          <select class="quiz-select" id="quizEnvironment" name="quizEnvironment" autocomplete="off">
+            <option value="" disabled selected>Choose…</option>
+            <option value="I usually listen at home, while relaxing or doing chores">At home (relaxing, chores, late night)</option>
+            <option value="I listen a lot on the go — commute, walk, or travel">Commute, walk, or travel</option>
+            <option value="I love open-air, nature, and outdoor hangs">Outdoors (parks, trips, open air)</option>
+            <option value="I thrive in clubs, parties, and loud social spaces">Clubs, parties, or loud rooms</option>
+            <option value="At work or while studying, I want focus-friendly music">Work / focus / study time</option>
+          </select>
+        </div>
+
+        <div class="quiz-block">
+          <label class="quiz-q" for="quizSocial">Social style</label>
+          <select class="quiz-select" id="quizSocial" name="quizSocial" autocomplete="off">
+            <option value="" disabled selected>Choose…</option>
+            <option value="I mostly enjoy music alone">Solo — headphones and my own world</option>
+            <option value="I like small groups and sharing songs with a few people">Small group (friends, car rides, hangouts)</option>
+            <option value="I love the energy of a crowd, concerts, and parties">Crowd — concerts, parties, big rooms</option>
+            <option value="I switch between social and solo depending on mood">Depends on the day (mixed)</option>
+          </select>
+        </div>
+
+        <div class="quiz-block">
+          <label class="quiz-q" for="quizLyric">Lyrical emphasis</label>
+          <select class="quiz-select" id="quizLyric" name="quizLyric" autocomplete="off">
+            <option value="" disabled selected>Choose…</option>
+            <option value="I want strong storytelling, narrative, and concrete lyrics">Storytelling — clear narratives and emotions</option>
+            <option value="I prefer abstract, poetic, and impressionistic words">Abstract / poetic — open to interpretation</option>
+            <option value="Lyrics are secondary; I care more about the beat and the vibe">Vibe over lyrics — the sound leads</option>
+            <option value="I do not have a strong preference; I like a mix of styles">A mix of lyrical styles is fine</option>
+          </select>
+        </div>
+
+        <div class="quiz-block">
+          <label class="quiz-q" for="quizNovelty">Nostalgia vs. novelty</label>
+          <select class="quiz-select" id="quizNovelty" name="quizNovelty" autocomplete="off">
+            <option value="" disabled selected>Choose…</option>
+            <option value="I lean to classics, deep cuts, and throwbacks">Classics, throwbacks, and proven favorites</option>
+            <option value="I like fresh, new, and I want the latest sounds">New releases, trending, and the cutting edge</option>
+            <option value="I like a mix of old and new">A balanced mix of old and new</option>
+            <option value="Surprise me — I do not need a rule">Surprise me (no strong rule)</option>
+          </select>
+        </div>
+
+        <div class="favorites-opt-row favorites-opt-disabled" id="useFavoritesWrap">
+          <label class="favorites-opt-label" for="useFavorites">
+            <input type="checkbox" id="useFavorites" disabled />
+            <span>Use my saved favorites as taste context (<span id="useFavoritesCount">0</span>)</span>
+          </label>
+          <p class="favorites-opt-hint">
+            When checked, your ♥ list (title and artist, up to 40 tracks) is sent with your quiz so picks match your taste.
+          </p>
+        </div>
+
+        <div class="row" style="margin-top: 1.1rem">
+          <button type="button" id="findPersona">Find My Persona</button>
+        </div>
+        <p class="hint" id="quizHint" style="margin-top: 0.75rem; margin-bottom: 0">Answers are combined into one line starting with <code style="font-family: inherit; opacity: 0.9">Quiz Results:</code> and sent to <code style="font-family: inherit; opacity: 0.9">/api/recommend</code>.</p>
+    </section>
+
+    <section id="results-section" aria-label="Results">
+      <div id="personaBanner" class="persona-banner hidden" role="region" aria-labelledby="personaName" aria-hidden="true">
+        <p class="persona-label">Your musical persona</p>
+        <p class="persona-name" id="personaName"></p>
+      </div>
+      <div id="playlist-bar" class="playlist-bar hidden" aria-label="Preview playlist">
+        <div class="playlist-bar-inner">
+          <p class="playlist-now" id="playlistNow"></p>
+          <div class="playlist-bar-row">
+            <button type="button" id="playlistPlayAll" aria-label="Preview playlist" title="Preview playlist">▶</button>
+            <button type="button" class="btn-secondary" id="playlistPrev" aria-label="Previous track" title="Previous track">⏮</button>
+            <button type="button" class="btn-secondary" id="playlistNext" aria-label="Next track" title="Next track">⏭</button>
+            <button type="button" class="btn-secondary" id="playlistStop" aria-label="Stop playback" title="Stop">⏹</button>
+            <button type="button" class="btn-secondary" id="savePlaylistBtn">Save playlist</button>
+          </div>
+          <p class="playlist-hint">
+            Plays your list in order using ~30-second previews from Apple’s catalog (same as each track’s ▶).
+            Full songs require a streaming service (e.g. Spotify or Apple Music) with login and their APIs.
+          </p>
+        </div>
+      </div>
+      <div class="grid" id="grid"></div>
+    </section>
+  </div>
+
+  <script>
+    const statusEl = document.getElementById("status");
+    const gridEl = document.getElementById("grid");
+    const findPersonaBtn = document.getElementById("findPersona");
+    const personaBannerEl = document.getElementById("personaBanner");
+    const personaNameEl = document.getElementById("personaName");
+    const favoritesNavCountEl = document.getElementById("favoritesNavCount");
+    let lastRequestPrompt = "";
+    const FAVORITES_STORAGE_KEY = "songRecommenderFavorites";
+    const PLAYLISTS_STORAGE_KEY = "songRecommenderSavedPlaylists";
+    const MAX_SAVED_PLAYLISTS = 40;
+    let favorites = [];
+    let currentSongs = [];
+    let formBusy = false;
+
+    function setStatus(text) {
+      if (statusEl) statusEl.textContent = text;
+    }
+
+    function clearStatusError() {
+      statusEl?.classList.remove("error");
+    }
+
+    function markStatusError() {
+      statusEl?.classList.add("error");
+    }
+
+    function favoriteKey(song) {
+      const t = String(song.title || "").trim().toLowerCase();
+      const a = String(song.artist || "").trim().toLowerCase();
+      return `${t}\u0000${a}`;
+    }
+
+    function loadFavorites() {
+      try {
+        const raw = localStorage.getItem(FAVORITES_STORAGE_KEY);
+        if (!raw) return [];
+        const arr = JSON.parse(raw);
+        if (!Array.isArray(arr)) return [];
+        return arr.filter(
+          (x) => x && typeof x.title === "string" && typeof x.artist === "string",
+        );
+      } catch {
+        return [];
+      }
+    }
+
+    function persistFavorites() {
+      try {
+        localStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify(favorites));
+      } catch (_) {}
+    }
+
+    function loadSavedPlaylists() {
+      try {
+        const raw = localStorage.getItem(PLAYLISTS_STORAGE_KEY);
+        if (!raw) return [];
+        const arr = JSON.parse(raw);
+        if (!Array.isArray(arr)) return [];
+        return arr.filter(
+          (p) =>
+            p &&
+            typeof p.id === "string" &&
+            typeof p.name === "string" &&
+            Array.isArray(p.tracks),
+        );
+      } catch {
+        return [];
+      }
+    }
+
+    function persistSavedPlaylists(arr) {
+      try {
+        localStorage.setItem(PLAYLISTS_STORAGE_KEY, JSON.stringify(arr));
+      } catch (_) {}
+    }
+
+    function updateSavedPlaylistsNavCount() {
+      const el = document.getElementById("savedPlaylistsNavCount");
+      if (el) {
+        el.textContent = String(loadSavedPlaylists().length);
+      }
+    }
+
+    function nextPlaylistNumber() {
+      const list = loadSavedPlaylists();
+      let max = 0;
+      for (const pl of list) {
+        const m = String(pl.name || "").match(/^playlist\s*#(\d+)$/i);
+        if (m) {
+          const n = parseInt(m[1], 10);
+          if (!Number.isNaN(n)) max = Math.max(max, n);
+        }
+      }
+      return max + 1;
+    }
+
+    function newPlaylistId() {
+      if (typeof crypto !== "undefined" && crypto.randomUUID) {
+        return crypto.randomUUID();
+      }
+      return `pl-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+    }
+
+    function saveCurrentPlaylist() {
+      if (formBusy || !currentSongs.length) return;
+      const nameStored = `Playlist #${nextPlaylistNumber()}`;
+      const existing = loadSavedPlaylists();
+      const entry = {
+        id: newPlaylistId(),
+        name: nameStored,
+        savedAt: new Date().toISOString(),
+        prompt: lastRequestPrompt.trim() || "Personality quiz playlist",
+        tracks: currentSongs.map((s) => ({
+          title: s.title || "",
+          artist: s.artist || "",
+        })),
+      };
+      const next = [entry, ...existing].slice(0, MAX_SAVED_PLAYLISTS);
+      persistSavedPlaylists(next);
+      updateSavedPlaylistsNavCount();
+      setStatus(`Saved "${nameStored}" (${currentSongs.length} tracks). Open Saved playlists to view or remove.`);
+      clearStatusError();
+    }
+
+    function isFavorite(song) {
+      const k = favoriteKey(song);
+      return favorites.some((f) => favoriteKey(f) === k);
+    }
+
+    function updateFavoritesNavCount() {
+      if (favoritesNavCountEl) {
+        favoritesNavCountEl.textContent = String(favorites.length);
+      }
+      const useCountEl = document.getElementById("useFavoritesCount");
+      if (useCountEl) {
+        useCountEl.textContent = String(favorites.length);
+      }
+      const useWrap = document.getElementById("useFavoritesWrap");
+      const useCb = document.getElementById("useFavorites");
+      if (useWrap && useCb) {
+        const has = favorites.length > 0;
+        useCb.disabled = !has;
+        useWrap.classList.toggle("favorites-opt-disabled", !has);
+        if (!has) {
+          useCb.checked = false;
+        }
+      }
+    }
+
+    function favoritesForApi() {
+      const useCb = document.getElementById("useFavorites");
+      if (!useCb || !useCb.checked || !favorites.length) {
+        return [];
+      }
+      return favorites.map((f) => ({
+        title: String(f.title || ""),
+        artist: String(f.artist || ""),
+      }));
+    }
+
+    function updateHeartButtons() {
+      if (!gridEl) return;
+      gridEl.querySelectorAll(".btn-heart").forEach((btn) => {
+        const idx = parseInt(btn.dataset.trackIndex, 10);
+        if (Number.isNaN(idx)) return;
+        const song = currentSongs[idx];
+        if (!song) return;
+        const on = isFavorite(song);
+        btn.classList.toggle("is-favorited", on);
+        btn.setAttribute("aria-pressed", on ? "true" : "false");
+        btn.setAttribute("aria-label", on ? "Remove from favorites" : "Add to favorites");
+      });
+    }
+
+    function toggleFavoriteAtIndex(index) {
+      if (formBusy) return;
+      const song = currentSongs[index];
+      if (!song) return;
+      const k = favoriteKey(song);
+      const i = favorites.findIndex((f) => favoriteKey(f) === k);
+      if (i >= 0) {
+        favorites.splice(i, 1);
+      } else {
+        favorites.push({
+          title: song.title,
+          artist: song.artist,
+          why: song.why || "",
+        });
+      }
+      persistFavorites();
+      updateFavoritesNavCount();
+      updateHeartButtons();
+    }
+
+    favorites = loadFavorites();
+    updateFavoritesNavCount();
+    updateSavedPlaylistsNavCount();
+
+    window.addEventListener("storage", (e) => {
+      if (e.key === FAVORITES_STORAGE_KEY) {
+        favorites = loadFavorites();
+        updateFavoritesNavCount();
+        updateHeartButtons();
+      }
+      if (e.key === PLAYLISTS_STORAGE_KEY) {
+        updateSavedPlaylistsNavCount();
+      }
+    });
+
+    let playingIndex = null;
+    let playLoadingIndex = null;
+    let playlistMode = false;
+    const previewUrlCache = new Map();
+    const audioPlayer = new Audio();
+    audioPlayer.preload = "none";
+
+    audioPlayer.addEventListener("ended", async () => {
+      if (playlistMode && playingIndex !== null) {
+        const next = playingIndex + 1;
+        if (next < currentSongs.length) {
+          await playTrackAt(next, { fromPlaylist: true });
+          return;
+        }
+        playlistMode = false;
+        playingIndex = null;
+        setStatus("Playlist finished.");
+        clearStatusError();
+        updatePlayButtons();
+        updatePlaylistBar();
+        return;
+      }
+      playingIndex = null;
+      updatePlayButtons();
+      updatePlaylistBar();
+    });
+
+    function highlightPlayingCard() {
+      if (!gridEl) return;
+      gridEl.querySelectorAll(".card").forEach((card, i) => {
+        card.classList.toggle("is-playing", playingIndex === i || playLoadingIndex === i);
+      });
+    }
+
+    function stopPlayback() {
+      playlistMode = false;
+      audioPlayer.pause();
+      audioPlayer.removeAttribute("src");
+      audioPlayer.load();
+      playingIndex = null;
+      playLoadingIndex = null;
+      updatePlayButtons();
+      updatePlaylistBar();
+    }
+
+    async function getOrFetchPreviewUrl(song) {
+      const key = `${song.artist}|${song.title}`;
+      let url = previewUrlCache.get(key);
+      if (url) return url;
+      const res = await fetch(
+        `/api/preview?title=${encodeURIComponent(song.title)}&artist=${encodeURIComponent(song.artist)}`,
+      );
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const msg =
+          typeof data.detail === "string"
+            ? data.detail
+            : "Preview not available.";
+        throw new Error(msg);
+      }
+      url = data.preview_url;
+      if (!url) throw new Error("Preview not available.");
+      previewUrlCache.set(key, url);
+      return url;
+    }
+
+    async function playTrackAt(index, opts = {}) {
+      const fromPlaylist = opts.fromPlaylist === true;
+      if (formBusy) return;
+      const song = currentSongs[index];
+      if (!song) return;
+
+      playLoadingIndex = index;
+      updatePlayButtons();
+      updatePlaylistBar();
+
+      let url;
+      try {
+        url = await getOrFetchPreviewUrl(song);
+      } catch (e) {
+        playLoadingIndex = null;
+        updatePlayButtons();
+        if (fromPlaylist && index + 1 < currentSongs.length) {
+          setStatus(`Skipping track ${index + 1} (no preview)…`);
+          clearStatusError();
+          await playTrackAt(index + 1, { fromPlaylist: true });
+          return;
+        }
+        setStatus(e.message || "Preview not available.");
+        clearStatusError();
+        updatePlaylistBar();
+        return;
+      }
+
+      playLoadingIndex = null;
+      audioPlayer.src = url;
+      playingIndex = index;
+      try {
+        await audioPlayer.play();
+        clearStatusError();
+      } catch (_) {
+        playingIndex = null;
+        setStatus("Could not play audio in this browser.");
+        markStatusError();
+      }
+      updatePlayButtons();
+      updatePlaylistBar();
+    }
+
+    function updatePlayButtons() {
+      if (!gridEl) return;
+      gridEl.querySelectorAll(".btn-play").forEach((btn) => {
+        const idx = parseInt(btn.dataset.trackIndex, 10);
+        if (Number.isNaN(idx)) return;
+        if (playLoadingIndex === idx) {
+          btn.textContent = "⏳";
+          btn.disabled = true;
+          btn.setAttribute("aria-busy", "true");
+          btn.setAttribute("aria-label", "Loading preview");
+          btn.removeAttribute("title");
+          return;
+        }
+        btn.removeAttribute("aria-busy");
+        btn.disabled = formBusy;
+        const playing = playingIndex === idx && !audioPlayer.paused;
+        btn.textContent = playing ? "⏸" : "▶";
+        btn.setAttribute("aria-label", playing ? "Pause preview" : "Play 30-second preview");
+        btn.setAttribute("title", playing ? "Pause preview" : "Play 30-second preview");
+        btn.setAttribute("aria-pressed", playing ? "true" : "false");
+      });
+      highlightPlayingCard();
+    }
+
+    function updatePlaylistBar() {
+      const bar = document.getElementById("playlist-bar");
+      const now = document.getElementById("playlistNow");
+      const btnPlayAll = document.getElementById("playlistPlayAll");
+      const btnPrev = document.getElementById("playlistPrev");
+      const btnNext = document.getElementById("playlistNext");
+      const btnStop = document.getElementById("playlistStop");
+      const saveBtn = document.getElementById("savePlaylistBtn");
+      if (!bar || !now || !btnPlayAll || !btnPrev || !btnNext || !btnStop) return;
+
+      if (!currentSongs.length) {
+        bar.classList.add("hidden");
+        return;
+      }
+      bar.classList.remove("hidden");
+
+      if (playlistMode && playLoadingIndex !== null) {
+        now.textContent = "Loading preview…";
+      } else if (playlistMode && playingIndex !== null) {
+        now.textContent = `Playlist: track ${playingIndex + 1} of ${currentSongs.length} (~30s previews)`;
+      } else {
+        now.textContent = `${currentSongs.length} tracks — press ▶ to preview the entire playlist`;
+      }
+
+      btnPlayAll.disabled = formBusy;
+      btnPrev.disabled =
+        formBusy || !playlistMode || playingIndex === null || playingIndex <= 0;
+      btnNext.disabled =
+        formBusy ||
+        !playlistMode ||
+        playingIndex === null ||
+        playingIndex >= currentSongs.length - 1;
+      btnStop.disabled = formBusy || (playingIndex === null && playLoadingIndex === null);
+      if (saveBtn) {
+        saveBtn.disabled = formBusy;
+      }
+    }
+
+    async function startPlaylist() {
+      if (formBusy || !currentSongs.length) return;
+      audioPlayer.pause();
+      audioPlayer.removeAttribute("src");
+      audioPlayer.load();
+      playingIndex = null;
+      playLoadingIndex = null;
+      playlistMode = true;
+      updatePlayButtons();
+      await playTrackAt(0, { fromPlaylist: true });
+    }
+
+    async function playlistNext() {
+      if (formBusy || !playlistMode || playingIndex === null) return;
+      if (playingIndex < currentSongs.length - 1) {
+        await playTrackAt(playingIndex + 1, { fromPlaylist: true });
+      }
+    }
+
+    async function playlistPrev() {
+      if (formBusy || !playlistMode || playingIndex === null) return;
+      if (playingIndex > 0) {
+        await playTrackAt(playingIndex - 1, { fromPlaylist: true });
+      }
+    }
+
+    async function togglePlay(index) {
+      if (formBusy) return;
+      const song = currentSongs[index];
+      if (!song) return;
+
+      if (playingIndex === index && !audioPlayer.paused) {
+        audioPlayer.pause();
+        updatePlayButtons();
+        updatePlaylistBar();
+        return;
+      }
+
+      if (playingIndex === index && audioPlayer.paused && audioPlayer.src) {
+        try {
+          await audioPlayer.play();
+          clearStatusError();
+        } catch (_) {
+          /* autoplay / decode errors */
+        }
+        updatePlayButtons();
+        updatePlaylistBar();
+        return;
+      }
+
+      playlistMode = false;
+      if (playingIndex !== null && playingIndex !== index) {
+        audioPlayer.pause();
+      }
+      await playTrackAt(index, { fromPlaylist: false });
+    }
+
+    function setUiBusy(loading, busyLabel) {
+      formBusy = loading;
+      if (findPersonaBtn) findPersonaBtn.disabled = loading;
+      document.querySelectorAll(".quiz-select").forEach((el) => {
+        el.disabled = loading;
+      });
+      if (gridEl) {
+        gridEl.querySelectorAll(".btn-redo").forEach((b) => {
+          b.disabled = loading;
+        });
+        gridEl.querySelectorAll(".btn-more-like").forEach((b) => {
+          b.disabled = loading;
+        });
+        gridEl.querySelectorAll(".btn-heart").forEach((b) => {
+          b.disabled = loading;
+        });
+      }
+      if (loading) {
+        setStatus(busyLabel);
+        clearStatusError();
+      }
+      updatePlayButtons();
+      updatePlaylistBar();
+    }
+
+    function showError(msg) {
+      setStatus(msg);
+      markStatusError();
+    }
+
+    function setPersonaBanner(name) {
+      if (!personaBannerEl || !personaNameEl) return;
+      const s = (name == null || name === undefined ? "" : String(name)).trim();
+      if (!s) {
+        personaBannerEl.classList.add("hidden");
+        personaBannerEl.setAttribute("aria-hidden", "true");
+        personaNameEl.textContent = "";
+        return;
+      }
+      personaNameEl.textContent = s;
+      personaBannerEl.classList.remove("hidden");
+      personaBannerEl.setAttribute("aria-hidden", "false");
+    }
+
+    function extractPersonaFromResponse(data) {
+      if (!data || typeof data !== "object") return null;
+      for (const k of ["persona", "musical_persona", "musicalPersona"]) {
+        const v = data[k];
+        if (v != null && String(v).trim()) return String(v).trim();
+      }
+      return null;
+    }
+
+    function scrollResultsIntoView() {
+      const el = document.getElementById("results-section");
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }
+
+    function buildQuizDescriptionString() {
+      const qe = document.getElementById("quizEnergy");
+      const qenv = document.getElementById("quizEnvironment");
+      const qso = document.getElementById("quizSocial");
+      const qly = document.getElementById("quizLyric");
+      const qno = document.getElementById("quizNovelty");
+      if (!qe || !qenv || !qso || !qly || !qno) return "";
+      const energy = (qe.value || "").trim();
+      const environment = (qenv.value || "").trim();
+      const social = (qso.value || "").trim();
+      const lyric = (qly.value || "").trim();
+      const novelty = (qno.value || "").trim();
+      if (!energy || !environment || !social || !lyric || !novelty) {
+        return "";
+      }
+      return (
+        "Quiz Results: " +
+        `Energy level — ${energy}. ` +
+        `Environment preference — ${environment}. ` +
+        `Social style — ${social}. ` +
+        `Lyric preference — ${lyric}. ` +
+        `Novelty vs nostalgia — ${novelty}.`
+      );
+    }
+
+    function renderCards(songs) {
+      if (!gridEl) return;
+      currentSongs = songs.map((s) => ({
+        title: s.title || "",
+        artist: s.artist || "",
+        why: s.why || "",
+      }));
+      gridEl.innerHTML = "";
+      if (!currentSongs.length) {
+        gridEl.innerHTML = '<div class="empty">No songs returned. Try a different prompt.</div>';
+        updatePlaylistBar();
+        return;
+      }
+      currentSongs.forEach((song, i) => {
+        const article = document.createElement("article");
+        article.className = "card";
+        article.innerHTML = `
+          <div class="card-header-row">
+            <span class="card-num">Track ${i + 1}</span>
+            <button type="button" class="btn-heart" data-track-index="${i}" aria-label="Add to favorites" aria-pressed="false">♥</button>
+          </div>
+          <h2 class="card-title"></h2>
+          <p class="card-artist"></p>
+          <p class="card-why"></p>
+          <div class="card-actions">
+            <div class="card-actions-row">
+              <button type="button" class="btn-play" data-track-index="${i}" aria-label="Play 30-second preview" title="Play preview">▶</button>
+              <button type="button" class="btn-secondary btn-redo">Redo</button>
+            </div>
+            <button type="button" class="btn-secondary btn-more-like">More like this</button>
+          </div>
+        `;
+        article.querySelector(".card-title").textContent = song.title || "—";
+        article.querySelector(".card-artist").textContent = song.artist || "—";
+        article.querySelector(".card-why").textContent = song.why || "";
+        const playBtn = article.querySelector(".btn-play");
+        playBtn.addEventListener("click", () => togglePlay(i));
+        const redoBtn = article.querySelector(".btn-redo");
+        redoBtn.setAttribute(
+          "aria-label",
+          `Replace track ${i + 1} with a different song for the same prompt`,
+        );
+        redoBtn.addEventListener("click", () => redoTrack(i));
+        const moreLikeBtn = article.querySelector(".btn-more-like");
+        moreLikeBtn.setAttribute(
+          "aria-label",
+          `Replace the playlist with 8 tracks similar to track ${i + 1}, including this song`,
+        );
+        moreLikeBtn.addEventListener("click", () => moreLikeThis(i));
+        const heartBtn = article.querySelector(".btn-heart");
+        heartBtn.addEventListener("click", () => toggleFavoriteAtIndex(i));
+        gridEl.appendChild(article);
+      });
+      updateHeartButtons();
+      updatePlaylistBar();
+    }
+
+    async function fetchQuizRecommendations() {
+      const story = buildQuizDescriptionString();
+      if (!story) {
+        showError("Please answer all 5 questions first.");
+        return;
+      }
+
+      lastRequestPrompt = story;
+      setPersonaBanner(null);
+      stopPlayback();
+      setUiBusy(true, "Finding your persona and songs…");
+      try {
+        const body = { prompt: story };
+        const favs = favoritesForApi();
+        if (favs.length) {
+          body.favorites = favs;
+        }
+        const res = await fetch("/api/recommend", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          const detail = data.detail;
+          const msg =
+            typeof detail === "string"
+              ? detail
+              : Array.isArray(detail)
+                ? detail.map((d) => d.msg || d).join(" ")
+                : res.statusText || "Request failed";
+          throw new Error(msg);
+        }
+        renderCards(data.songs || []);
+        setPersonaBanner(extractPersonaFromResponse(data));
+        let msg = `Persona + ${(data.songs || []).length} songs${favs.length ? " · used your favorites as taste context" : ""}`;
+        setStatus(msg);
+        clearStatusError();
+        const pb = document.getElementById("personaBanner");
+        if (pb && !pb.classList.contains("hidden")) {
+          requestAnimationFrame(() => pb.scrollIntoView({ behavior: "smooth", block: "start" }));
+        } else {
+          scrollResultsIntoView();
+        }
+      } catch (e) {
+        showError(e.message || "Something went wrong.");
+        currentSongs = [];
+        if (gridEl) gridEl.innerHTML = "";
+        setPersonaBanner(null);
+      } finally {
+        setUiBusy(false);
+      }
+    }
+
+    async function moreLikeThis(index) {
+      if (!currentSongs.length || index < 0 || index >= currentSongs.length) {
+        return;
+      }
+      const seed = currentSongs[index];
+      stopPlayback();
+      setUiBusy(true, "Finding similar tracks…");
+      try {
+        const body = {
+          seed: { title: seed.title, artist: seed.artist },
+          seed_why: seed.why || "",
+        };
+        const ctx = lastRequestPrompt;
+        if (ctx) {
+          body.context_prompt = ctx;
+        }
+        const favs = favoritesForApi();
+        if (favs.length) {
+          body.favorites = favs;
+        }
+        const res = await fetch("/api/recommend/similar", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          const detail = data.detail;
+          const msg =
+            typeof detail === "string"
+              ? detail
+              : Array.isArray(detail)
+                ? detail.map((d) => d.msg || d).join(" ")
+                : res.statusText || "Request failed";
+          throw new Error(msg);
+        }
+        const songs = data.songs || [];
+        if (songs.length !== 8) {
+          throw new Error("Expected 8 tracks from similar-songs request.");
+        }
+        renderCards(songs);
+        setPersonaBanner(null);
+        const ref = `${seed.title} — ${seed.artist}`.trim() || "your pick";
+        let msg = `8 tracks similar to ${ref} (includes your selected track)`;
+        if (favs.length) {
+          msg += " · used your favorites as taste context";
+        }
+        setStatus(msg);
+        clearStatusError();
+      } catch (e) {
+        showError(e.message || "Something went wrong.");
+      } finally {
+        setUiBusy(false);
+      }
+    }
+
+    async function redoTrack(index) {
+      const prompt = lastRequestPrompt.trim();
+      if (!prompt) {
+        showError("Run Find My Persona first — nothing to base a redo on yet.");
+        return;
+      }
+      if (!currentSongs.length || index < 0 || index >= currentSongs.length) {
+        return;
+      }
+
+      const replace = currentSongs[index];
+      const others = currentSongs.filter((_, j) => j !== index);
+
+      if (playingIndex === index) {
+        stopPlayback();
+      }
+
+      setUiBusy(true, "Finding a different track…");
+      try {
+        const redoBody = {
+          prompt,
+          replace: { title: replace.title, artist: replace.artist },
+          others: others.map((s) => ({ title: s.title, artist: s.artist })),
+        };
+        const redoFavs = favoritesForApi();
+        if (redoFavs.length) {
+          redoBody.favorites = redoFavs;
+        }
+        const res = await fetch("/api/recommend/one", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(redoBody),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          const detail = data.detail;
+          const msg =
+            typeof detail === "string"
+              ? detail
+              : Array.isArray(detail)
+                ? detail.map((d) => d.msg || d).join(" ")
+                : res.statusText || "Request failed";
+          throw new Error(msg);
+        }
+        const song = data.song;
+        if (!song) {
+          throw new Error("No replacement song returned.");
+        }
+        currentSongs[index] = {
+          title: song.title || "",
+          artist: song.artist || "",
+          why: song.why || "",
+        };
+        renderCards(currentSongs);
+        setStatus(`Replaced track ${index + 1} · ${currentSongs.length} tracks total`);
+        clearStatusError();
+      } catch (e) {
+        showError(e.message || "Something went wrong.");
+      } finally {
+        setUiBusy(false);
+      }
+    }
+
+    if (findPersonaBtn) {
+      findPersonaBtn.addEventListener("click", fetchQuizRecommendations);
+    }
+
+    [
+      ["playlistPlayAll", startPlaylist],
+      ["playlistPrev", playlistPrev],
+      ["playlistNext", playlistNext],
+      ["playlistStop", stopPlayback],
+      ["savePlaylistBtn", saveCurrentPlaylist],
+    ].forEach(([id, handler]) => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener("click", handler);
+    });
+  </script>
+</body>
+</html>
