@@ -3,10 +3,12 @@ import os
 import re
 import secrets
 import time
+import asyncio
 from pathlib import Path
 from typing import Any
 
 import httpx
+import logging
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
@@ -24,6 +26,7 @@ ITUNES_SEARCH_URL = "https://itunes.apple.com/search"
 ITUNES_HEADERS = {"User-Agent": "SongRecommender/1.0"}
 
 app = FastAPI(title="Song Recommender")
+logger = logging.getLogger("song_recommender")
 
 SESSION_COOKIE = "sr_session"
 _oauth_states: dict[str, str] = {}
@@ -235,7 +238,7 @@ class RecommendRequest(BaseModel):
         description="What the user wants (mood, genre, similar artists, etc.)",
     )
     count: int = Field(
-        default=8,
+        default=20,
         ge=1,
         le=20,
         description="How many songs to recommend (1-20).",
@@ -426,14 +429,86 @@ async def _yt_api_request(
     json_body: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     headers = {"Authorization": f"Bearer {access_token}"}
-    async with httpx.AsyncClient(timeout=25.0) as client:
-        r = await client.request(method, url, headers=headers, params=params, json=json_body)
-    if r.status_code >= 400:
-        raise HTTPException(status_code=502, detail=f"YouTube API error ({r.status_code}): {r.text}")
-    data = r.json()
-    if not isinstance(data, dict):
-        raise HTTPException(status_code=502, detail="YouTube API returned non-object JSON.")
-    return data
+
+    last_text = ""
+    last_status = 0
+    last_reason = ""
+    last_msg = ""
+
+    for attempt in range(4):
+        async with httpx.AsyncClient(timeout=25.0) as client:
+            r = await client.request(method, url, headers=headers, params=params, json=json_body)
+        if r.status_code < 400:
+            data = r.json()
+            if not isinstance(data, dict):
+                raise HTTPException(status_code=502, detail="YouTube API returned non-object JSON.")
+            return data
+
+        text = r.text
+        msg = text
+        reason = ""
+        try:
+            payload = r.json()
+            if isinstance(payload, dict):
+                err = payload.get("error")
+                if isinstance(err, dict):
+                    m = err.get("message")
+                    if isinstance(m, str) and m.strip():
+                        msg = m.strip()
+                    errs = err.get("errors")
+                    if isinstance(errs, list) and errs:
+                        first = errs[0]
+                        if isinstance(first, dict):
+                            rsn = first.get("reason")
+                            if isinstance(rsn, str):
+                                reason = rsn
+        except Exception:
+            pass
+
+        last_text = text
+        last_status = r.status_code
+        last_reason = reason
+        last_msg = msg
+
+        transient = r.status_code in (429, 500, 502, 503) or (
+            r.status_code == 409 and reason in ("SERVICE_UNAVAILABLE", "backendError")
+        )
+        if transient and attempt < 3:
+            delay = 0.35 * (2**attempt)
+            logger.warning(
+                "YouTube transient error %s %s (%s, %s). Retrying in %.2fs: %s",
+                method,
+                url,
+                r.status_code,
+                reason or "-",
+                delay,
+                msg[:240],
+            )
+            await asyncio.sleep(delay)
+            continue
+
+        logger.warning("YouTube API error %s %s (%s): %s", method, url, r.status_code, text[:800])
+
+        if r.status_code in (401, 403) and reason == "youtubeSignupRequired":
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "Your Google account isn't enabled for YouTube yet (youtubeSignupRequired). "
+                    "Open YouTube while logged into that Google account, create/activate a channel, "
+                    "then come back and Link Google again."
+                ),
+            )
+
+        raise HTTPException(
+            status_code=502,
+            detail=f"YouTube API error ({r.status_code}): {msg}",
+        )
+
+    # Shouldn't happen (loop returns or raises), but keep mypy happy.
+    raise HTTPException(
+        status_code=502,
+        detail=f"YouTube API error ({last_status}, {last_reason}): {last_msg or last_text}",
+    )
 
 
 def _yt_search_query(title: str, artist: str) -> str:
@@ -475,17 +550,21 @@ async def youtube_export(request: Request, body: YouTubeExportRequest) -> dict:
             continue
 
         search_url = "https://www.googleapis.com/youtube/v3/search"
-        search = await _yt_api_request(
-            method="GET",
-            url=search_url,
-            access_token=access_token,
-            params={
-                "part": "snippet",
-                "type": "video",
-                "maxResults": "1",
-                "q": q,
-            },
-        )
+        try:
+            search = await _yt_api_request(
+                method="GET",
+                url=search_url,
+                access_token=access_token,
+                params={
+                    "part": "snippet",
+                    "type": "video",
+                    "maxResults": "1",
+                    "q": q,
+                },
+            )
+        except HTTPException as e:
+            skipped.append({"title": tr.title, "artist": tr.artist, "reason": f"YouTube search failed: {e.detail}"})
+            continue
         items = search.get("items", [])
         if not isinstance(items, list) or not items:
             skipped.append({"title": tr.title, "artist": tr.artist, "reason": "No YouTube match"})
@@ -501,19 +580,23 @@ async def youtube_export(request: Request, body: YouTubeExportRequest) -> dict:
             continue
 
         insert_url = "https://www.googleapis.com/youtube/v3/playlistItems"
-        await _yt_api_request(
-            method="POST",
-            url=insert_url,
-            access_token=access_token,
-            params={"part": "snippet"},
-            json_body={
-                "snippet": {
-                    "playlistId": playlist_id,
-                    "resourceId": {"kind": "youtube#video", "videoId": video_id},
-                }
-            },
-        )
-        added += 1
+        try:
+            await _yt_api_request(
+                method="POST",
+                url=insert_url,
+                access_token=access_token,
+                params={"part": "snippet"},
+                json_body={
+                    "snippet": {
+                        "playlistId": playlist_id,
+                        "resourceId": {"kind": "youtube#video", "videoId": video_id},
+                    }
+                },
+            )
+            added += 1
+        except HTTPException as e:
+            skipped.append({"title": tr.title, "artist": tr.artist, "reason": f"Add to playlist failed: {e.detail}"})
+            continue
 
     return {
         "playlistId": playlist_id,

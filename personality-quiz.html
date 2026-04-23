@@ -1065,6 +1065,11 @@
         if (!r.ok) {
           statusEl.textContent = (data && data.detail) ? String(data.detail) : "Export failed.";
           statusEl.classList.add("error");
+          if (r.status === 401) {
+            setTimeout(() => {
+              window.location.href = "/account";
+            }, 600);
+          }
           return;
         }
         statusEl.textContent = `Created YouTube playlist (${data.addedCount || 0} added). Opening…`;

@@ -374,7 +374,11 @@
             });
             const data = await r.json().catch(() => ({}));
             if (!r.ok) {
-              alert((data && data.detail) ? String(data.detail) : "Export failed.");
+              const msg = (data && data.detail) ? String(data.detail) : "Export failed.";
+              alert(msg);
+              if (r.status === 401) {
+                window.location.href = "/account";
+              }
               return;
             }
             if (data.playlistUrl) {

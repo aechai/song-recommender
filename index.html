@@ -940,6 +940,11 @@
         if (!r.ok) {
           statusEl.textContent = (data && data.detail) ? String(data.detail) : "Export failed.";
           statusEl.classList.add("error");
+          if (r.status === 401) {
+            setTimeout(() => {
+              window.location.href = "/account";
+            }, 600);
+          }
           return;
         }
         statusEl.textContent = `Created YouTube playlist (${data.addedCount || 0} added). Opening…`;
@@ -1143,7 +1148,7 @@
         const moreLikeBtn = article.querySelector(".btn-more-like");
         moreLikeBtn.setAttribute(
           "aria-label",
-          `Replace the playlist with 8 tracks similar to track ${i + 1}, including this song`,
+          `Replace the playlist with tracks similar to track ${i + 1}, including this song`,
         );
         moreLikeBtn.addEventListener("click", () => moreLikeThis(i));
         const heartBtn = article.querySelector(".btn-heart");
@@ -1240,12 +1245,12 @@
           throw new Error(msg);
         }
         const songs = data.songs || [];
-        if (songs.length !== 8) {
-          throw new Error("Expected 8 tracks from similar-songs request.");
+        if (songs.length !== 20) {
+          throw new Error("Expected 20 tracks from similar-songs request.");
         }
         renderCards(songs);
         const ref = `${seed.title} — ${seed.artist}`.trim() || "your pick";
-        let msg = `8 tracks similar to ${ref} (includes your selected track)`;
+        let msg = `20 tracks similar to ${ref} (includes your selected track)`;
         if (favs.length) {
           msg += " · used your favorites as taste context";
         }
