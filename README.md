@@ -40,9 +40,8 @@ A small **FastAPI** app with a static frontend that suggests **8 songs at a time
 | `personality-quiz.html` | Musical Personality Quiz UI (separate page). |
 | `favorites.html` | Favorites + in-page **Saved playlists** tab. |
 | `playlists.html` | Standalone saved-playlists view. |
-| `account.html` | Account page for linking streaming services (OAuth). |
 | `requirements.txt` | Python dependencies. |
-| `.env` | Local secrets (Together + OAuth). **Do not commit.** |
+| `.env` | Local secrets (Together). **Do not commit.** |
 
 ---
 
@@ -98,7 +97,6 @@ Then open **http://127.0.0.1:8010** in your browser.
 | `/personality-quiz` | `personality-quiz.html` |
 | `/favorites` | `favorites.html` |
 | `/playlists` | `playlists.html` |
-| `/account` | `account.html` |
 
 ---
 
@@ -172,46 +170,6 @@ Response: `{ "preview_url": "<https://…>" }` or **404** if no preview is found
 Counts in the nav update when storage changes (e.g. another tab). **Clearing site data** removes favorites and playlists.
 
 ---
-
-## Linking streaming accounts (OAuth)
-
-This project now supports real OAuth “linking” for:
-
-- **Spotify** (OAuth + PKCE)
-- **Google** (OAuth; used for YouTube/YouTube Music access)
-
-To enable the **Link** buttons on `/account`, add these to your `.env` (see `.env.example`):
-
-- `SESSION_SECRET`
-- `SPOTIFY_CLIENT_ID`
-- `SPOTIFY_REDIRECT_URI`
-- `GOOGLE_CLIENT_ID`
-- `GOOGLE_CLIENT_SECRET`
-- `GOOGLE_REDIRECT_URI`
-
-For local dev, your redirect URIs should match your `uvicorn` port, e.g.:
-
-- Spotify: `http://127.0.0.1:8010/auth/spotify/callback`
-- Google: `http://127.0.0.1:8010/auth/google/callback`
-
-### OAuth endpoints
-
-- **Spotify**
-  - `GET /auth/spotify/login`
-  - `GET /auth/spotify/callback`
-  - `POST /auth/spotify/logout`
-- **Google**
-  - `GET /auth/google/login`
-  - `GET /auth/google/callback`
-  - `POST /auth/google/logout`
-- **Status used by the Account page**
-  - `GET /api/auth/status`
-
-### Notes
-
-- OAuth tokens are stored in a **server-side session cookie** (no database).
-- Apple Music linking is **not implemented** (requires MusicKit + developer token).
-
 
 ## Current limitations
 
