@@ -536,8 +536,9 @@
     <nav class="site-nav" aria-label="Site">
       <a href="/" class="nav-link">Recommend songs</a>
       <a href="/favorites" class="nav-link">Favorite tracks <span class="nav-count" id="favoritesNavCount">0</span></a>
-      <a href="/playlists" class="nav-link">Saved playlists <span class="nav-count" id="savedPlaylistsNavCount">0</span></a>
       <a href="/personality-quiz" class="nav-link" aria-current="page">Personality quiz</a>
+      <a href="/playlists" class="nav-link">Saved playlists <span class="nav-count" id="savedPlaylistsNavCount">0</span></a>
+      <a href="/account" class="nav-link">Account</a>
     </nav>
 
     <header>
@@ -639,6 +640,7 @@
             <button type="button" class="btn-secondary" id="playlistNext" aria-label="Next track" title="Next track">⏭</button>
             <button type="button" class="btn-secondary" id="playlistStop" aria-label="Stop playback" title="Stop">⏹</button>
             <button type="button" class="btn-secondary" id="savePlaylistBtn">Save playlist</button>
+            <button type="button" class="btn-secondary" id="exportYoutubeBtn">Export to YouTube</button>
           </div>
           <p class="playlist-hint">
             Plays your list in order using ~30-second previews from Apple’s catalog (same as each track’s ▶).
@@ -1042,6 +1044,42 @@
       }
     }
 
+    async function exportCurrentToYouTube() {
+      if (formBusy || !currentSongs.length) return;
+      const btn = document.getElementById("exportYoutubeBtn");
+      if (btn) btn.disabled = true;
+      statusEl.textContent = "Exporting to YouTube…";
+      statusEl.classList.remove("error");
+      try {
+        const persona = String((personaNameEl && personaNameEl.textContent) || "").trim();
+        const name = persona ? `Song Recommender — ${persona}` : "Song Recommender playlist";
+        const r = await fetch("/api/youtube/export", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            name,
+            tracks: currentSongs.map((s) => ({ title: String(s.title || ""), artist: String(s.artist || "") })),
+          }),
+        });
+        const data = await r.json().catch(() => ({}));
+        if (!r.ok) {
+          statusEl.textContent = (data && data.detail) ? String(data.detail) : "Export failed.";
+          statusEl.classList.add("error");
+          return;
+        }
+        statusEl.textContent = `Created YouTube playlist (${data.addedCount || 0} added). Opening…`;
+        if (data.playlistUrl) {
+          window.open(String(data.playlistUrl), "_blank", "noopener,noreferrer");
+        }
+      } catch (e) {
+        statusEl.textContent = `Export failed: ${e}`;
+        statusEl.classList.add("error");
+      } finally {
+        if (btn) btn.disabled = formBusy;
+      }
+    }
+
     async function togglePlay(index) {
       if (formBusy) return;
       const song = currentSongs[index];
@@ -1394,6 +1432,7 @@
     document.getElementById("playlistNext").addEventListener("click", playlistNext);
     document.getElementById("playlistStop").addEventListener("click", stopPlayback);
     document.getElementById("savePlaylistBtn").addEventListener("click", saveCurrentPlaylist);
+    document.getElementById("exportYoutubeBtn").addEventListener("click", exportCurrentToYouTube);
   </script>
 </body>
 </html>

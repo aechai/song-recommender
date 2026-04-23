@@ -224,6 +224,7 @@
       <a href="/favorites" class="nav-link">Favorite tracks <span class="nav-count" id="favoritesNavCount">0</span></a>
       <a href="/playlists" class="nav-link" aria-current="page">Saved playlists <span class="nav-count" id="savedPlaylistsNavCount">0</span></a>
       <a href="/personality-quiz" class="nav-link">Personality quiz</a>
+      <a href="/account" class="nav-link">Account</a>
     </nav>
 
     <header>
@@ -345,6 +346,50 @@
         left.appendChild(h3);
         left.appendChild(meta);
 
+        const actions = document.createElement("div");
+        actions.style.display = "flex";
+        actions.style.gap = "0.5rem";
+        actions.style.flexWrap = "wrap";
+        actions.style.alignItems = "center";
+
+        const exportBtn = document.createElement("button");
+        exportBtn.type = "button";
+        exportBtn.className = "btn-delete";
+        exportBtn.style.borderColor = "rgba(124, 92, 255, 0.35)";
+        exportBtn.style.color = "var(--text)";
+        exportBtn.textContent = "Export to YouTube";
+        exportBtn.setAttribute("aria-label", `Export playlist ${pl.name} to YouTube`);
+        exportBtn.addEventListener("click", async () => {
+          exportBtn.disabled = true;
+          try {
+            const r = await fetch("/api/youtube/export", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              credentials: "include",
+              body: JSON.stringify({
+                name: String(pl.name || "Song Recommender playlist"),
+                tracks: Array.isArray(pl.tracks)
+                  ? pl.tracks.map((t) => ({ title: String(t.title || ""), artist: String(t.artist || "") }))
+                  : [],
+              }),
+            });
+            const data = await r.json().catch(() => ({}));
+            if (!r.ok) {
+              alert((data && data.detail) ? String(data.detail) : "Export failed.");
+              return;
+            }
+            if (data.playlistUrl) {
+              window.open(String(data.playlistUrl), "_blank", "noopener,noreferrer");
+            } else {
+              alert("Exported, but no playlist URL returned.");
+            }
+          } catch (e) {
+            alert(`Export failed: ${e}`);
+          } finally {
+            exportBtn.disabled = false;
+          }
+        });
+
         const del = document.createElement("button");
         del.type = "button";
         del.className = "btn-delete";
@@ -352,8 +397,11 @@
         del.setAttribute("aria-label", `Delete playlist ${pl.name}`);
         del.addEventListener("click", () => deletePlaylist(pl.id));
 
+        actions.appendChild(exportBtn);
+        actions.appendChild(del);
+
         head.appendChild(left);
-        head.appendChild(del);
+        head.appendChild(actions);
         article.appendChild(head);
 
         const prompt = String(pl.prompt || "").trim();

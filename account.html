@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Account — Song Recommender</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0c0d12;
+      --bg-elevated: #14151c;
+      --border: rgba(255, 255, 255, 0.08);
+      --text: #e8e9ed;
+      --muted: #8b8f9a;
+      --accent: #7c5cff;
+      --accent-dim: rgba(124, 92, 255, 0.15);
+      --danger: #f87171;
+      --radius: 14px;
+      --shadow: 0 18px 50px rgba(0, 0, 0, 0.45);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "DM Sans", system-ui, sans-serif;
+      background: radial-gradient(1200px 600px at 10% -10%, rgba(124, 92, 255, 0.18), transparent 55%),
+        radial-gradient(900px 500px at 90% 0%, rgba(56, 189, 248, 0.1), transparent 50%),
+        var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    .wrap {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 2.5rem 1.25rem 4rem;
+    }
+
+    header { margin-bottom: 2rem; }
+
+    .site-nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem 1.25rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .nav-link {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--muted);
+      text-decoration: none;
+      border-radius: 999px;
+      padding: 0.35rem 0.85rem;
+      border: 1px solid transparent;
+      transition: color 0.15s, border-color 0.15s, background 0.15s;
+    }
+
+    .nav-link:hover {
+      color: var(--text);
+      border-color: var(--border);
+      background: var(--bg-elevated);
+    }
+
+    .nav-link[aria-current="page"] {
+      color: var(--text);
+      border-color: rgba(124, 92, 255, 0.35);
+      background: var(--accent-dim);
+    }
+
+    .nav-count {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 0.75rem;
+      opacity: 0.9;
+    }
+
+    h1 {
+      font-size: clamp(1.75rem, 4vw, 2.25rem);
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      margin: 0 0 0.5rem;
+    }
+
+    .sub {
+      color: var(--muted);
+      font-size: 1rem;
+      margin: 0;
+    }
+
+    .panel {
+      background: linear-gradient(145deg, rgba(255, 255, 255, 0.04), transparent);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem;
+      box-shadow: var(--shadow);
+      margin-bottom: 2rem;
+    }
+
+    .row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      align-items: center;
+      margin-top: 0.75rem;
+    }
+
+    .btn {
+      appearance: none;
+      border: 1px solid rgba(124, 92, 255, 0.35);
+      background: var(--accent-dim);
+      color: var(--text);
+      font-family: inherit;
+      font-size: 0.92rem;
+      font-weight: 700;
+      padding: 0.65rem 0.95rem;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: transform 0.12s, background 0.15s, border-color 0.15s;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+      background: rgba(124, 92, 255, 0.22);
+      border-color: rgba(124, 92, 255, 0.55);
+    }
+
+    .btn-secondary {
+      border-color: var(--border);
+      background: var(--bg-elevated);
+      font-weight: 650;
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.06);
+      border-color: rgba(255, 255, 255, 0.14);
+    }
+
+    .btn-danger {
+      border: 1px solid rgba(248, 113, 113, 0.45);
+      background: rgba(248, 113, 113, 0.1);
+      color: var(--danger);
+    }
+
+    .btn-danger:hover {
+      background: rgba(248, 113, 113, 0.16);
+      border-color: rgba(248, 113, 113, 0.6);
+    }
+
+    .status {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 0.85rem;
+      color: var(--muted);
+      margin: 0.75rem 0 0;
+    }
+
+    .status strong { color: var(--text); }
+    .status.error { color: var(--danger); }
+
+    .note {
+      margin: 0.75rem 0 0;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .nav-link,
+      .btn {
+        transition: none;
+      }
+      .btn:hover { transform: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <nav class="site-nav" aria-label="Site">
+      <a href="/" class="nav-link">Recommend songs</a>
+      <a href="/favorites" class="nav-link">Favorite tracks <span class="nav-count" id="favoritesNavCount">0</span></a>
+      <a href="/personality-quiz" class="nav-link">Personality quiz</a>
+      <a href="/playlists" class="nav-link">Saved playlists <span class="nav-count" id="savedPlaylistsNavCount">0</span></a>
+      <a href="/account" class="nav-link" aria-current="page">Account</a>
+    </nav>
+
+    <header>
+      <h1>Account</h1>
+      <p class="sub">Link your Google account to export playlists to YouTube.</p>
+    </header>
+
+    <section class="panel" aria-label="Google account linking">
+      <p class="status" id="linkStatus" role="status" aria-live="polite">Checking link status…</p>
+      <div class="row">
+        <button type="button" class="btn" id="linkBtn">Link Google (YouTube)</button>
+        <button type="button" class="btn btn-danger" id="unlinkBtn" hidden>Unlink</button>
+        <button type="button" class="btn btn-secondary" id="refreshBtn">Refresh</button>
+      </div>
+      <p class="note">
+        Linking is stored only in this server process (in-memory). Restarting the server will require linking again.
+      </p>
+    </section>
+  </div>
+
+  <script>
+    const FAVORITES_STORAGE_KEY = "songRecommenderFavorites";
+    const PLAYLISTS_STORAGE_KEY = "songRecommenderSavedPlaylists";
+
+    function loadFavoritesLength() {
+      try {
+        const raw = localStorage.getItem(FAVORITES_STORAGE_KEY);
+        if (!raw) return 0;
+        const arr = JSON.parse(raw);
+        return Array.isArray(arr) ? arr.length : 0;
+      } catch {
+        return 0;
+      }
+    }
+
+    function loadSavedPlaylistsLength() {
+      try {
+        const raw = localStorage.getItem(PLAYLISTS_STORAGE_KEY);
+        if (!raw) return 0;
+        const arr = JSON.parse(raw);
+        return Array.isArray(arr) ? arr.length : 0;
+      } catch {
+        return 0;
+      }
+    }
+
+    function updateNavCounts() {
+      const favEl = document.getElementById("favoritesNavCount");
+      if (favEl) favEl.textContent = String(loadFavoritesLength());
+      const plEl = document.getElementById("savedPlaylistsNavCount");
+      if (plEl) plEl.textContent = String(loadSavedPlaylistsLength());
+    }
+
+    updateNavCounts();
+    window.addEventListener("storage", (e) => {
+      if (e.key === FAVORITES_STORAGE_KEY || e.key === PLAYLISTS_STORAGE_KEY) {
+        updateNavCounts();
+      }
+    });
+
+    const statusEl = document.getElementById("linkStatus");
+    const linkBtn = document.getElementById("linkBtn");
+    const unlinkBtn = document.getElementById("unlinkBtn");
+    const refreshBtn = document.getElementById("refreshBtn");
+
+    function setStatus(text, { error = false } = {}) {
+      statusEl.textContent = text;
+      statusEl.classList.toggle("error", Boolean(error));
+    }
+
+    async function refreshStatus() {
+      setStatus("Checking link status…");
+      try {
+        const r = await fetch("/api/account/status", { credentials: "include" });
+        const data = await r.json().catch(() => ({}));
+        if (!r.ok) {
+          setStatus(data && data.detail ? String(data.detail) : "Could not load status.", { error: true });
+          unlinkBtn.hidden = true;
+          return;
+        }
+        if (data && data.linked) {
+          setStatus("Status: linked ✔");
+          unlinkBtn.hidden = false;
+        } else {
+          setStatus("Status: not linked");
+          unlinkBtn.hidden = true;
+        }
+      } catch (e) {
+        setStatus(`Network error: ${e}`, { error: true });
+        unlinkBtn.hidden = true;
+      }
+    }
+
+    linkBtn.addEventListener("click", () => {
+      window.location.href = "/auth/google/start";
+    });
+
+    unlinkBtn.addEventListener("click", async () => {
+      if (!confirm("Unlink your Google account from this session?")) return;
+      setStatus("Unlinking…");
+      try {
+        const r = await fetch("/auth/google/unlink", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({}),
+        });
+        const data = await r.json().catch(() => ({}));
+        if (!r.ok) {
+          setStatus(data && data.detail ? String(data.detail) : "Unlink failed.", { error: true });
+          return;
+        }
+        await refreshStatus();
+      } catch (e) {
+        setStatus(`Network error: ${e}`, { error: true });
+      }
+    });
+
+    refreshBtn.addEventListener("click", refreshStatus);
+    refreshStatus();
+  </script>
+</body>
+</html>

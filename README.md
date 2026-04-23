@@ -97,6 +97,7 @@ Then open **http://127.0.0.1:8010** in your browser.
 | `/personality-quiz` | `personality-quiz.html` |
 | `/favorites` | `favorites.html` |
 | `/playlists` | `playlists.html` |
+| `/account` | `account.html` |
 
 ---
 
@@ -157,6 +158,28 @@ Response: `{ "songs": [ … ] }` — **8** items: the **seed first**, then **7**
 Query: `title`, `artist` (at least one required).
 
 Response: `{ "preview_url": "<https://…>" }` or **404** if no preview is found.
+
+### YouTube export (Google OAuth)
+
+This app can optionally link a Google account and export playlists to YouTube.
+
+- **Link/unlink UI:** open **`/account`**
+- **OAuth env vars:** set these in `.env`, then restart `uvicorn`:
+  - `GOOGLE_CLIENT_ID`
+  - `GOOGLE_CLIENT_SECRET`
+  - `GOOGLE_REDIRECT_URI` (example: `http://127.0.0.1:8010/auth/google/callback`)
+- **Export endpoint:** `POST /api/youtube/export` with body:
+
+```json
+{
+  "name": "My playlist name",
+  "tracks": [{ "title": "…", "artist": "…" }]
+}
+```
+
+Notes:
+- Tokens are stored **in memory** only; restarting the server requires re-linking.
+- Export uses YouTube search for each `title + artist` and skips tracks with no match.
 
 ---
 

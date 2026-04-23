@@ -4,11 +4,12 @@ import re
 import secrets
 import time
 from pathlib import Path
+from typing import Any
 
 import httpx
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Query, Request
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from pydantic import BaseModel, Field
 from together import Together
 
@@ -24,6 +25,10 @@ ITUNES_HEADERS = {"User-Agent": "SongRecommender/1.0"}
 
 app = FastAPI(title="Song Recommender")
 
+SESSION_COOKIE = "sr_session"
+_oauth_states: dict[str, str] = {}
+_google_tokens: dict[str, dict[str, Any]] = {}
+
 
 def _now() -> int:
     return int(time.time())
@@ -34,6 +39,73 @@ def _env_required(var: str) -> str:
     if not v:
         raise HTTPException(status_code=500, detail=f"{var} is not set in .env")
     return v
+
+
+def _get_or_set_session_id(request: Request, response: JSONResponse | RedirectResponse | None = None) -> str:
+    sid = request.cookies.get(SESSION_COOKIE, "").strip()
+    if sid:
+        return sid
+    sid = secrets.token_urlsafe(24)
+    if response is not None:
+        response.set_cookie(
+            key=SESSION_COOKIE,
+            value=sid,
+            httponly=True,
+            samesite="lax",
+        )
+    return sid
+
+
+def _token_is_valid(tok: dict[str, Any]) -> bool:
+    try:
+        return bool(tok.get("access_token")) and int(tok.get("expires_at", 0)) - _now() > 30
+    except Exception:
+        return False
+
+
+async def _refresh_access_token(refresh_token: str) -> dict[str, Any]:
+    client_id = _env_required("GOOGLE_CLIENT_ID")
+    client_secret = _env_required("GOOGLE_CLIENT_SECRET")
+    token_url = "https://oauth2.googleapis.com/token"
+    data = {
+        "client_id": client_id,
+        "client_secret": client_secret,
+        "refresh_token": refresh_token,
+        "grant_type": "refresh_token",
+    }
+    async with httpx.AsyncClient(timeout=20.0) as client:
+        r = await client.post(token_url, data=data)
+    if r.status_code >= 400:
+        raise HTTPException(status_code=502, detail=f"Google token refresh failed: {r.text}")
+    payload = r.json()
+    access_token = payload.get("access_token")
+    expires_in = int(payload.get("expires_in") or 3600)
+    if not isinstance(access_token, str) or not access_token:
+        raise HTTPException(status_code=502, detail="Google token refresh did not return access_token.")
+    return {
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "expires_at": _now() + max(60, expires_in),
+        "scope": payload.get("scope", ""),
+        "token_type": payload.get("token_type", "Bearer"),
+    }
+
+
+async def _get_access_token_for_request(request: Request) -> str:
+    sid = request.cookies.get(SESSION_COOKIE, "").strip()
+    if not sid:
+        raise HTTPException(status_code=401, detail="Not linked. Open Account to link Google.")
+    tok = _google_tokens.get(sid)
+    if not tok:
+        raise HTTPException(status_code=401, detail="Not linked. Open Account to link Google.")
+    if _token_is_valid(tok):
+        return str(tok["access_token"])
+    refresh_token = tok.get("refresh_token")
+    if not isinstance(refresh_token, str) or not refresh_token:
+        raise HTTPException(status_code=401, detail="Link expired (no refresh token). Link Google again.")
+    new_tok = await _refresh_access_token(refresh_token)
+    _google_tokens[sid] = new_tok
+    return str(new_tok["access_token"])
 
 
 def get_client() -> Together:
@@ -202,6 +274,16 @@ class SimilarFromTrackRequest(BaseModel):
     )
 
 
+class YouTubeTrack(BaseModel):
+    title: str = Field(default="", max_length=220)
+    artist: str = Field(default="", max_length=220)
+
+
+class YouTubeExportRequest(BaseModel):
+    name: str = Field(default="Song Recommender playlist", max_length=120)
+    tracks: list[YouTubeTrack] = Field(default_factory=list, max_length=80)
+
+
 def _trim_favorites(favs: list[SongRef], *, limit: int = 40) -> list[SongRef]:
     out = [f for f in favs[:limit] if f.title.strip() or f.artist.strip()]
     return out
@@ -239,6 +321,206 @@ async def serve_playlists() -> FileResponse:
 @app.get("/personality-quiz")
 async def serve_personality_quiz() -> FileResponse:
     return FileResponse(BASE_DIR / "personality-quiz.html")
+
+
+@app.get("/account")
+async def serve_account() -> FileResponse:
+    return FileResponse(BASE_DIR / "account.html")
+
+
+@app.get("/api/account/status")
+async def account_status(request: Request) -> JSONResponse:
+    sid = request.cookies.get(SESSION_COOKIE, "").strip()
+    linked = bool(sid and sid in _google_tokens)
+    resp = JSONResponse({"linked": linked})
+    if not sid:
+        _get_or_set_session_id(request, resp)
+    return resp
+
+
+@app.get("/auth/google/start")
+async def auth_google_start(request: Request) -> RedirectResponse:
+    client_id = _env_required("GOOGLE_CLIENT_ID")
+    redirect_uri = _env_required("GOOGLE_REDIRECT_URI")
+    state = secrets.token_urlsafe(18)
+
+    auth_url = "https://accounts.google.com/o/oauth2/v2/auth"
+    scope = "https://www.googleapis.com/auth/youtube"
+    params = {
+        "client_id": client_id,
+        "redirect_uri": redirect_uri,
+        "response_type": "code",
+        "scope": scope,
+        "access_type": "offline",
+        "include_granted_scopes": "true",
+        "prompt": "consent",
+        "state": state,
+    }
+
+    resp = RedirectResponse(url=str(httpx.URL(auth_url, params=params)))
+    sid = _get_or_set_session_id(request, resp)
+    _oauth_states[sid] = state
+    return resp
+
+
+@app.get("/auth/google/callback")
+async def auth_google_callback(request: Request, code: str = Query(default=""), state: str = Query(default="")) -> RedirectResponse:
+    if not code:
+        raise HTTPException(status_code=400, detail="Missing code.")
+    resp = RedirectResponse(url="/account")
+    sid = _get_or_set_session_id(request, resp)
+    expected = _oauth_states.get(sid)
+    if not expected or not state or state != expected:
+        raise HTTPException(status_code=400, detail="Invalid OAuth state. Try linking again.")
+
+    client_id = _env_required("GOOGLE_CLIENT_ID")
+    client_secret = _env_required("GOOGLE_CLIENT_SECRET")
+    redirect_uri = _env_required("GOOGLE_REDIRECT_URI")
+    token_url = "https://oauth2.googleapis.com/token"
+    data = {
+        "code": code,
+        "client_id": client_id,
+        "client_secret": client_secret,
+        "redirect_uri": redirect_uri,
+        "grant_type": "authorization_code",
+    }
+    async with httpx.AsyncClient(timeout=20.0) as client:
+        r = await client.post(token_url, data=data)
+    if r.status_code >= 400:
+        raise HTTPException(status_code=502, detail=f"Google token exchange failed: {r.text}")
+    payload = r.json()
+    access_token = payload.get("access_token")
+    refresh_token = payload.get("refresh_token")
+    expires_in = int(payload.get("expires_in") or 3600)
+    if not isinstance(access_token, str) or not access_token:
+        raise HTTPException(status_code=502, detail="Google token exchange did not return access_token.")
+    if not isinstance(refresh_token, str) or not refresh_token:
+        raise HTTPException(status_code=502, detail="Google token exchange did not return refresh_token. Try linking again.")
+
+    _google_tokens[sid] = {
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "expires_at": _now() + max(60, expires_in),
+        "scope": payload.get("scope", ""),
+        "token_type": payload.get("token_type", "Bearer"),
+    }
+    _oauth_states.pop(sid, None)
+    return resp
+
+
+@app.post("/auth/google/unlink")
+async def auth_google_unlink(request: Request) -> JSONResponse:
+    resp = JSONResponse({"ok": True})
+    sid = _get_or_set_session_id(request, resp)
+    _google_tokens.pop(sid, None)
+    _oauth_states.pop(sid, None)
+    return resp
+
+
+async def _yt_api_request(
+    *,
+    method: str,
+    url: str,
+    access_token: str,
+    params: dict[str, str] | None = None,
+    json_body: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    headers = {"Authorization": f"Bearer {access_token}"}
+    async with httpx.AsyncClient(timeout=25.0) as client:
+        r = await client.request(method, url, headers=headers, params=params, json=json_body)
+    if r.status_code >= 400:
+        raise HTTPException(status_code=502, detail=f"YouTube API error ({r.status_code}): {r.text}")
+    data = r.json()
+    if not isinstance(data, dict):
+        raise HTTPException(status_code=502, detail="YouTube API returned non-object JSON.")
+    return data
+
+
+def _yt_search_query(title: str, artist: str) -> str:
+    t = title.strip()
+    a = artist.strip()
+    if t and a:
+        return f"\"{t}\" {a}"
+    return t or a
+
+
+@app.post("/api/youtube/export")
+async def youtube_export(request: Request, body: YouTubeExportRequest) -> dict:
+    if not body.tracks:
+        raise HTTPException(status_code=400, detail="No tracks provided.")
+    access_token = await _get_access_token_for_request(request)
+
+    create_url = "https://www.googleapis.com/youtube/v3/playlists"
+    playlist = await _yt_api_request(
+        method="POST",
+        url=create_url,
+        access_token=access_token,
+        params={"part": "snippet,status"},
+        json_body={
+            "snippet": {"title": body.name.strip() or "Song Recommender playlist"},
+            "status": {"privacyStatus": "private"},
+        },
+    )
+    playlist_id = playlist.get("id")
+    if not isinstance(playlist_id, str) or not playlist_id:
+        raise HTTPException(status_code=502, detail="YouTube did not return a playlist id.")
+
+    skipped: list[dict[str, str]] = []
+    added = 0
+
+    for tr in body.tracks[:80]:
+        q = _yt_search_query(tr.title, tr.artist)
+        if not q.strip():
+            skipped.append({"title": tr.title, "artist": tr.artist, "reason": "Empty title/artist"})
+            continue
+
+        search_url = "https://www.googleapis.com/youtube/v3/search"
+        search = await _yt_api_request(
+            method="GET",
+            url=search_url,
+            access_token=access_token,
+            params={
+                "part": "snippet",
+                "type": "video",
+                "maxResults": "1",
+                "q": q,
+            },
+        )
+        items = search.get("items", [])
+        if not isinstance(items, list) or not items:
+            skipped.append({"title": tr.title, "artist": tr.artist, "reason": "No YouTube match"})
+            continue
+        first = items[0]
+        if not isinstance(first, dict):
+            skipped.append({"title": tr.title, "artist": tr.artist, "reason": "Bad search item"})
+            continue
+        id_obj = first.get("id", {})
+        video_id = id_obj.get("videoId") if isinstance(id_obj, dict) else None
+        if not isinstance(video_id, str) or not video_id:
+            skipped.append({"title": tr.title, "artist": tr.artist, "reason": "No videoId"})
+            continue
+
+        insert_url = "https://www.googleapis.com/youtube/v3/playlistItems"
+        await _yt_api_request(
+            method="POST",
+            url=insert_url,
+            access_token=access_token,
+            params={"part": "snippet"},
+            json_body={
+                "snippet": {
+                    "playlistId": playlist_id,
+                    "resourceId": {"kind": "youtube#video", "videoId": video_id},
+                }
+            },
+        )
+        added += 1
+
+    return {
+        "playlistId": playlist_id,
+        "playlistUrl": f"https://www.youtube.com/playlist?list={playlist_id}",
+        "addedCount": added,
+        "skipped": skipped,
+    }
 
 
 @app.get("/api/preview")
