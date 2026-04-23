@@ -284,7 +284,7 @@ class YouTubeTrack(BaseModel):
 
 class YouTubeExportRequest(BaseModel):
     name: str = Field(default="Song Recommender playlist", max_length=120)
-    tracks: list[YouTubeTrack] = Field(default_factory=list, max_length=80)
+    tracks: list[YouTubeTrack] = Field(default_factory=list, max_length=150)
 
 
 def _trim_favorites(favs: list[SongRef], *, limit: int = 40) -> list[SongRef]:

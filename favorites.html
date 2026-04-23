@@ -475,7 +475,7 @@
 
     <div class="page-tabs" role="tablist" aria-label="Library sections">
       <button type="button" class="page-tab" role="tab" id="tabBtnFavorites" aria-controls="panelFavorites" aria-selected="true">
-        Favorite tracks
+        Saved
       </button>
       <button type="button" class="page-tab" role="tab" id="tabBtnPlaylists" aria-controls="panelPlaylists" aria-selected="false">
         Saved playlists
@@ -500,6 +500,7 @@
             <button type="button" class="btn-secondary" id="playlistPrev" aria-label="Previous track" title="Previous track">⏮</button>
             <button type="button" class="btn-secondary" id="playlistNext" aria-label="Next track" title="Next track">⏭</button>
             <button type="button" class="btn-secondary" id="playlistStop" aria-label="Stop playback" title="Stop">⏹</button>
+            <button type="button" class="btn-secondary" id="exportFavoritesYoutubeBtn">Export to YouTube</button>
           </div>
           <p class="playlist-hint">
             Plays your favorites in order using ~30-second previews from Apple’s catalog (same as each track’s ▶).
@@ -594,10 +595,47 @@
       }
     }
 
-    function updateFavoritesNavCountInNav() {
-      const el = document.getElementById("favoritesNavCount");
-      if (el) {
-        el.textContent = String(favorites.length);
+    async function exportFavoritesToYouTube() {
+      if (!currentSongs.length) {
+        statusEl.textContent = "No saved tracks to export.";
+        statusEl.classList.add("error");
+        return;
+      }
+      const btn = document.getElementById("exportFavoritesYoutubeBtn");
+      if (btn) btn.disabled = true;
+      statusEl.textContent = "Exporting to YouTube…";
+      statusEl.classList.remove("error");
+      try {
+        const r = await fetch("/api/youtube/export", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            name: "Song Recommender — Saved tracks",
+            tracks: currentSongs.map((s) => ({ title: String(s.title || ""), artist: String(s.artist || "") })),
+          }),
+        });
+        const data = await r.json().catch(() => ({}));
+        if (!r.ok) {
+          statusEl.textContent = (data && data.detail) ? String(data.detail) : "Export failed.";
+          statusEl.classList.add("error");
+          if (r.status === 401) {
+            setTimeout(() => {
+              window.location.href = "/account";
+            }, 600);
+          }
+          return;
+        }
+        statusEl.textContent = `Created YouTube playlist (${data.addedCount || 0} added). Opening…`;
+        statusEl.classList.remove("error");
+        if (data.playlistUrl) {
+          window.open(String(data.playlistUrl), "_blank", "noopener,noreferrer");
+        }
+      } catch (e) {
+        statusEl.textContent = `Export failed: ${e}`;
+        statusEl.classList.add("error");
+      } finally {
+        if (btn) btn.disabled = false;
       }
     }
 
@@ -668,6 +706,53 @@
         left.appendChild(h3);
         left.appendChild(meta);
 
+        const actions = document.createElement("div");
+        actions.style.display = "flex";
+        actions.style.gap = "0.5rem";
+        actions.style.flexWrap = "wrap";
+        actions.style.alignItems = "center";
+
+        const exportBtn = document.createElement("button");
+        exportBtn.type = "button";
+        exportBtn.className = "btn-delete-pl";
+        exportBtn.style.borderColor = "rgba(124, 92, 255, 0.35)";
+        exportBtn.style.color = "var(--text)";
+        exportBtn.textContent = "Export to YouTube";
+        exportBtn.setAttribute("aria-label", `Export playlist ${pl.name} to YouTube`);
+        exportBtn.addEventListener("click", async () => {
+          exportBtn.disabled = true;
+          try {
+            const r = await fetch("/api/youtube/export", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              credentials: "include",
+              body: JSON.stringify({
+                name: String(pl.name || "Song Recommender playlist"),
+                tracks: Array.isArray(pl.tracks)
+                  ? pl.tracks.map((t) => ({ title: String(t.title || ""), artist: String(t.artist || "") }))
+                  : [],
+              }),
+            });
+            const data = await r.json().catch(() => ({}));
+            if (!r.ok) {
+              alert((data && data.detail) ? String(data.detail) : "Export failed.");
+              if (r.status === 401) {
+                window.location.href = "/account";
+              }
+              return;
+            }
+            if (data.playlistUrl) {
+              window.open(String(data.playlistUrl), "_blank", "noopener,noreferrer");
+            } else {
+              alert("Exported, but no playlist URL returned.");
+            }
+          } catch (e) {
+            alert(`Export failed: ${e}`);
+          } finally {
+            exportBtn.disabled = false;
+          }
+        });
+
         const del = document.createElement("button");
         del.type = "button";
         del.className = "btn-delete-pl";
@@ -680,8 +765,11 @@
           updateSavedPlaylistsNavCount();
         });
 
+        actions.appendChild(exportBtn);
+        actions.appendChild(del);
+
         head.appendChild(left);
-        head.appendChild(del);
+        head.appendChild(actions);
         article.appendChild(head);
 
         const prompt = String(pl.prompt || "").trim();
@@ -957,7 +1045,6 @@
     function renderFavoritesList() {
       favorites = loadFavorites();
       favoritesCountEl.textContent = String(favorites.length);
-      updateFavoritesNavCountInNav();
       favoritesEmptyEl.hidden = favorites.length > 0;
 
       currentSongs = favorites.map((f) => ({
@@ -1013,6 +1100,7 @@
     document.getElementById("playlistPrev").addEventListener("click", playlistPrev);
     document.getElementById("playlistNext").addEventListener("click", playlistNext);
     document.getElementById("playlistStop").addEventListener("click", stopPlayback);
+    document.getElementById("exportFavoritesYoutubeBtn").addEventListener("click", exportFavoritesToYouTube);
 
     window.addEventListener("storage", (e) => {
       if (e.key === FAVORITES_STORAGE_KEY) {

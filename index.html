@@ -921,9 +921,7 @@
     async function exportCurrentToYouTube() {
       if (formBusy || !currentSongs.length) return;
       const btn = document.getElementById("exportYoutubeBtn");
-      if (btn) btn.disabled = true;
-      statusEl.textContent = "Exporting to YouTube…";
-      statusEl.classList.remove("error");
+      setUiBusy(true, "Exporting to YouTube…");
       try {
         const nameBase = String(promptEl.value || "").trim();
         const name = nameBase ? `Song Recommender — ${nameBase.slice(0, 60)}` : "Song Recommender playlist";
@@ -955,7 +953,7 @@
         statusEl.textContent = `Export failed: ${e}`;
         statusEl.classList.add("error");
       } finally {
-        if (btn) btn.disabled = formBusy;
+        setUiBusy(false);
       }
     }
 
