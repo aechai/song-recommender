@@ -466,9 +466,8 @@
   <div class="wrap">
     <nav class="site-nav" aria-label="Site">
       <a href="/" class="nav-link" aria-current="page">Recommend songs</a>
-      <a href="/favorites" class="nav-link">Favorite tracks <span class="nav-count" id="favoritesNavCount">0</span></a>
+      <a href="/favorites" class="nav-link">Saved <span class="nav-count" id="favoritesNavCount">0</span></a>
       <a href="/personality-quiz" class="nav-link">Personality quiz</a>
-      <a href="/playlists" class="nav-link">Saved playlists <span class="nav-count" id="savedPlaylistsNavCount">0</span></a>
       <a href="/account" class="nav-link">Account</a>
     </nav>
 
@@ -651,7 +650,7 @@
       const next = [entry, ...existing].slice(0, MAX_SAVED_PLAYLISTS);
       persistSavedPlaylists(next);
       updateSavedPlaylistsNavCount();
-      statusEl.textContent = `Saved "${nameStored}" (${currentSongs.length} tracks). Open Saved playlists to view or remove.`;
+      statusEl.textContent = `Saved "${nameStored}" (${currentSongs.length} tracks). Open Saved to view or remove.`;
       statusEl.classList.remove("error");
     }
 
