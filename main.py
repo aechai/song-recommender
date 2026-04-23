@@ -652,7 +652,7 @@ async def preview(
 
 @app.post("/api/recommend")
 async def recommend(body: RecommendRequest) -> dict:
-    n = int(body.count or 8)
+    n = int(body.count or 20)
     client = get_client()
     favs = _trim_favorites(body.favorites)
     user = f"Song recommendations for: {body.prompt}"
@@ -750,6 +750,7 @@ async def recommend(body: RecommendRequest) -> dict:
 
 @app.post("/api/recommend/similar")
 async def recommend_similar(body: SimilarFromTrackRequest) -> dict:
+    similar_count = 19
     st = body.seed.title.strip()
     sa = body.seed.artist.strip()
     if not st and not sa:
@@ -770,7 +771,7 @@ async def recommend_similar(body: SimilarFromTrackRequest) -> dict:
 
     system = (
         "You are a music expert. Reply with ONLY valid JSON, no markdown or explanation. "
-        "Return a JSON array of exactly 7 objects. Each object must have: "
+        f"Return a JSON array of exactly {similar_count} objects. Each object must have: "
         '"title" (string), "artist" (string), "why" (one short sentence explaining the similarity). '
         "Choose real, well-known songs that are musically or thematically similar to the reference track "
         "(same genre, era, production style, collaborators, or clear sonic kinship). "
@@ -778,7 +779,7 @@ async def recommend_similar(body: SimilarFromTrackRequest) -> dict:
     )
     user = (
         f'The reference track is "{seed_norm["title"]}" by {seed_norm["artist"]}.\n'
-        "Suggest 7 other songs a listener would enjoy if they love that track."
+        f"Suggest {similar_count} other songs a listener would enjoy if they love that track."
     )
     cp = body.context_prompt.strip()
     if cp:
@@ -804,8 +805,8 @@ async def recommend_similar(body: SimilarFromTrackRequest) -> dict:
                     "content": (
                         "Some suggestions duplicated the reference track or each other, "
                         "or you returned the wrong count. Reply again with ONLY a JSON array "
-                        f'of exactly 7 objects. None may be "{seed_norm["title"]}" by '
-                        f'{seed_norm["artist"]}. All 7 must be distinct real songs.'
+                        f'of exactly {similar_count} objects. None may be "{seed_norm["title"]}" by '
+                        f'{seed_norm["artist"]}. All {similar_count} must be distinct real songs.'
                     ),
                 }
             )
@@ -819,7 +820,7 @@ async def recommend_similar(body: SimilarFromTrackRequest) -> dict:
                         "role": "user",
                         "content": (
                             "Your previous reply was not valid JSON. "
-                            "Reply again with ONLY a valid JSON array of exactly 7 objects."
+                            f"Reply again with ONLY a valid JSON array of exactly {similar_count} objects."
                         ),
                     }
                 )
@@ -828,9 +829,11 @@ async def recommend_similar(body: SimilarFromTrackRequest) -> dict:
             try:
                 parsed = parse_song_json(content)
                 songs = [normalize_song_item(x) for x in parsed if isinstance(x, dict)]
-                if len(songs) < 7:
-                    raise ValueError(f"Expected at least 7 songs, got {len(songs)}")
-                songs = songs[:7]
+                if len(songs) < similar_count:
+                    raise ValueError(
+                        f"Expected at least {similar_count} songs, got {len(songs)}"
+                    )
+                songs = songs[:similar_count]
                 break
             except (json.JSONDecodeError, ValueError) as e:
                 parse_errors.append(str(e))
@@ -851,7 +854,7 @@ async def recommend_similar(body: SimilarFromTrackRequest) -> dict:
             seen.add(k)
             filtered.append(s)
 
-        if len(filtered) == 7:
+        if len(filtered) == similar_count:
             similar_songs = filtered
             break
 
@@ -861,7 +864,7 @@ async def recommend_similar(body: SimilarFromTrackRequest) -> dict:
     if similar_songs is None:
         raise HTTPException(
             status_code=502,
-            detail="Could not get 7 distinct similar songs after several tries; try again.",
+            detail=f"Could not get {similar_count} distinct similar songs after several tries; try again.",
         )
 
     out = [seed_norm] + similar_songs

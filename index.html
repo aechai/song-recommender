@@ -453,6 +453,64 @@
       margin: 0 0 1rem;
     }
 
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 1.25rem;
+      transform: translateX(-50%);
+      width: min(720px, calc(100vw - 2rem));
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      padding: 0.85rem 0.95rem;
+      border-radius: 999px;
+      background: rgba(20, 21, 28, 0.92);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55);
+      backdrop-filter: blur(10px);
+      z-index: 999;
+    }
+
+    .toast.show {
+      display: flex;
+    }
+
+    .toast.error {
+      border-color: rgba(248, 113, 113, 0.55);
+    }
+
+    .toast-text {
+      font-size: 0.92rem;
+      color: var(--text);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .toast-close {
+      appearance: none;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      border-radius: 999px;
+      width: 2.1rem;
+      height: 2.1rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      flex-shrink: 0;
+      font-size: 1.1rem;
+      font-weight: 700;
+    }
+
+    .toast-close:hover {
+      color: var(--text);
+      border-color: rgba(255, 255, 255, 0.16);
+      background: rgba(255, 255, 255, 0.06);
+    }
+
     @media (prefers-reduced-motion: reduce) {
       button,
       .card,
@@ -476,7 +534,10 @@
       <p class="sub">Get <strong>20</strong> songs from a description. For a named <strong>musical persona</strong> plus <strong>20</strong> picks, open the <a href="/personality-quiz" style="color: var(--accent); font-weight: 600">Musical Personality Quiz</a>.</p>
     </header>
 
-    <p class="status shared-status" id="status" role="status" aria-live="polite"></p>
+    <div class="toast" id="statusToast" role="status" aria-live="polite">
+      <span class="toast-text" id="statusText"></span>
+      <button type="button" class="toast-close" id="statusToastClose" aria-label="Dismiss status">×</button>
+    </div>
 
     <section id="panel-describe" class="panel" aria-label="Request form" style="scroll-margin-top: 0.5rem">
       <h2 class="section-heading" id="heading-describe" style="margin: 0 0 0.75rem; font-size: 1.1rem; font-weight: 700">Describe</h2>
@@ -530,7 +591,10 @@
     const promptEl = document.getElementById("prompt");
     const submitBtn = document.getElementById("submit");
     const randomBtn = document.getElementById("randomPrompt");
-    const statusEl = document.getElementById("status");
+    const statusToastEl = document.getElementById("statusToast");
+    const statusTextEl = document.getElementById("statusText");
+    const statusToastCloseEl = document.getElementById("statusToastClose");
+    const statusEl = statusTextEl;
     const gridEl = document.getElementById("grid");
     const favoritesNavCountEl = document.getElementById("favoritesNavCount");
     let lastRequestPrompt = "";
@@ -540,6 +604,35 @@
     let favorites = [];
     let currentSongs = [];
     let formBusy = false;
+    let statusAutoHideTimer = null;
+
+    function hideStatusToast() {
+      if (statusAutoHideTimer) {
+        clearTimeout(statusAutoHideTimer);
+        statusAutoHideTimer = null;
+      }
+      if (statusToastEl) {
+        statusToastEl.classList.remove("show", "error");
+      }
+    }
+
+    function showStatus(msg, { error = false, sticky = false } = {}) {
+      if (!statusToastEl || !statusTextEl) return;
+      if (statusAutoHideTimer) {
+        clearTimeout(statusAutoHideTimer);
+        statusAutoHideTimer = null;
+      }
+      statusTextEl.textContent = String(msg || "");
+      statusToastEl.classList.toggle("error", Boolean(error));
+      statusToastEl.classList.add("show");
+      if (!error && !sticky) {
+        statusAutoHideTimer = setTimeout(hideStatusToast, 4200);
+      }
+    }
+
+    if (statusToastCloseEl) {
+      statusToastCloseEl.addEventListener("click", hideStatusToast);
+    }
 
     function favoriteKey(song) {
       const t = String(song.title || "").trim().toLowerCase();
@@ -635,8 +728,7 @@
       const next = [entry, ...existing].slice(0, MAX_SAVED_PLAYLISTS);
       persistSavedPlaylists(next);
       updateSavedPlaylistsNavCount();
-      statusEl.textContent = `Saved "${nameStored}" (${currentSongs.length} tracks). Open Saved to view or remove.`;
-      statusEl.classList.remove("error");
+      showStatus(`Saved "${nameStored}" (${currentSongs.length} tracks). Open Saved to view or remove.`);
     }
 
     function isFavorite(song) {
@@ -696,12 +788,14 @@
       const i = favorites.findIndex((f) => favoriteKey(f) === k);
       if (i >= 0) {
         favorites.splice(i, 1);
+        showStatus(`Removed from Saved: ${song.title || "track"} — ${song.artist || ""}`.trim());
       } else {
         favorites.push({
           title: song.title,
           artist: song.artist,
           why: song.why || "",
         });
+        showStatus(`Saved: ${song.title || "track"} — ${song.artist || ""}`.trim());
       }
       persistFavorites();
       updateFavoritesNavCount();
@@ -739,8 +833,7 @@
         }
         playlistMode = false;
         playingIndex = null;
-        statusEl.textContent = "Playlist finished.";
-        statusEl.classList.remove("error");
+        showStatus("Playlist finished.");
         updatePlayButtons();
         updatePlaylistBar();
         return;
@@ -805,13 +898,11 @@
         playLoadingIndex = null;
         updatePlayButtons();
         if (fromPlaylist && index + 1 < currentSongs.length) {
-          statusEl.textContent = `Skipping track ${index + 1} (no preview)…`;
-          statusEl.classList.remove("error");
+          showStatus(`Skipping track ${index + 1} (no preview)…`);
           await playTrackAt(index + 1, { fromPlaylist: true });
           return;
         }
-        statusEl.textContent = e.message || "Preview not available.";
-        statusEl.classList.remove("error");
+        showStatus(e.message || "Preview not available.");
         updatePlaylistBar();
         return;
       }
@@ -821,11 +912,10 @@
       playingIndex = index;
       try {
         await audioPlayer.play();
-        statusEl.classList.remove("error");
+        statusToastEl && statusToastEl.classList.remove("error");
       } catch (_) {
         playingIndex = null;
-        statusEl.textContent = "Could not play audio in this browser.";
-        statusEl.classList.add("error");
+        showStatus("Could not play audio in this browser.", { error: true, sticky: true });
       }
       updatePlayButtons();
       updatePlaylistBar();
@@ -1081,17 +1171,13 @@
       gridEl.querySelectorAll(".btn-heart").forEach((b) => {
         b.disabled = loading;
       });
-      if (loading) {
-        statusEl.textContent = busyLabel;
-        statusEl.classList.remove("error");
-      }
+      if (loading) showStatus(busyLabel, { sticky: true });
       updatePlayButtons();
       updatePlaylistBar();
     }
 
     function showError(msg) {
-      statusEl.textContent = msg;
-      statusEl.classList.add("error");
+      showStatus(msg, { error: true, sticky: true });
     }
 
     function scrollResultsIntoView() {

@@ -132,6 +132,64 @@
       color: var(--danger);
     }
 
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 1.25rem;
+      transform: translateX(-50%);
+      width: min(720px, calc(100vw - 2rem));
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      padding: 0.85rem 0.95rem;
+      border-radius: 999px;
+      background: rgba(20, 21, 28, 0.92);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55);
+      backdrop-filter: blur(10px);
+      z-index: 999;
+    }
+
+    .toast.show {
+      display: flex;
+    }
+
+    .toast.error {
+      border-color: rgba(248, 113, 113, 0.55);
+    }
+
+    .toast-text {
+      font-size: 0.92rem;
+      color: var(--text);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .toast-close {
+      appearance: none;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      border-radius: 999px;
+      width: 2.1rem;
+      height: 2.1rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      flex-shrink: 0;
+      font-size: 1.1rem;
+      font-weight: 700;
+    }
+
+    .toast-close:hover {
+      color: var(--text);
+      border-color: rgba(255, 255, 255, 0.16);
+      background: rgba(255, 255, 255, 0.06);
+    }
+
     .playlist-bar {
       margin-bottom: 1.25rem;
     }
@@ -475,7 +533,7 @@
 
     <div class="page-tabs" role="tablist" aria-label="Library sections">
       <button type="button" class="page-tab" role="tab" id="tabBtnFavorites" aria-controls="panelFavorites" aria-selected="true">
-        Saved
+        Favorite tracks
       </button>
       <button type="button" class="page-tab" role="tab" id="tabBtnPlaylists" aria-controls="panelPlaylists" aria-selected="false">
         Saved playlists
@@ -508,7 +566,6 @@
         </div>
       </div>
 
-      <p class="status" id="playbackStatus" role="status" aria-live="polite"></p>
       <div class="grid" id="favoritesGrid"></div>
     </section>
     </div>
@@ -527,11 +584,19 @@
     </div>
   </div>
 
+  <div class="toast" id="statusToast" role="status" aria-live="polite">
+    <span class="toast-text" id="statusText"></span>
+    <button type="button" class="toast-close" id="statusToastClose" aria-label="Dismiss status">×</button>
+  </div>
+
   <script>
     const favoritesCountEl = document.getElementById("favoritesCount");
     const favoritesEmptyEl = document.getElementById("favoritesEmpty");
     const favoritesGridEl = document.getElementById("favoritesGrid");
-    const statusEl = document.getElementById("playbackStatus");
+    const statusToastEl = document.getElementById("statusToast");
+    const statusTextEl = document.getElementById("statusText");
+    const statusToastCloseEl = document.getElementById("statusToastClose");
+    const statusEl = statusTextEl;
     const FAVORITES_STORAGE_KEY = "songRecommenderFavorites";
     const PLAYLISTS_STORAGE_KEY = "songRecommenderSavedPlaylists";
     let favorites = [];
@@ -543,6 +608,35 @@
     const previewUrlCache = new Map();
     const audioPlayer = new Audio();
     audioPlayer.preload = "none";
+    let statusAutoHideTimer = null;
+
+    function hideStatusToast() {
+      if (statusAutoHideTimer) {
+        clearTimeout(statusAutoHideTimer);
+        statusAutoHideTimer = null;
+      }
+      if (statusToastEl) {
+        statusToastEl.classList.remove("show", "error");
+      }
+    }
+
+    function showStatus(msg, { error = false, sticky = false } = {}) {
+      if (!statusToastEl || !statusTextEl) return;
+      if (statusAutoHideTimer) {
+        clearTimeout(statusAutoHideTimer);
+        statusAutoHideTimer = null;
+      }
+      statusTextEl.textContent = String(msg || "");
+      statusToastEl.classList.toggle("error", Boolean(error));
+      statusToastEl.classList.add("show");
+      if (!error && !sticky) {
+        statusAutoHideTimer = setTimeout(hideStatusToast, 4200);
+      }
+    }
+
+    if (statusToastCloseEl) {
+      statusToastCloseEl.addEventListener("click", hideStatusToast);
+    }
 
     function favoriteKey(song) {
       const t = String(song.title || "").trim().toLowerCase();
@@ -597,14 +691,12 @@
 
     async function exportFavoritesToYouTube() {
       if (!currentSongs.length) {
-        statusEl.textContent = "No saved tracks to export.";
-        statusEl.classList.add("error");
+        showStatus("No saved tracks to export.", { error: true, sticky: true });
         return;
       }
       const btn = document.getElementById("exportFavoritesYoutubeBtn");
       if (btn) btn.disabled = true;
-      statusEl.textContent = "Exporting to YouTube…";
-      statusEl.classList.remove("error");
+      showStatus("Exporting to YouTube…", { sticky: true });
       try {
         const r = await fetch("/api/youtube/export", {
           method: "POST",
@@ -617,8 +709,7 @@
         });
         const data = await r.json().catch(() => ({}));
         if (!r.ok) {
-          statusEl.textContent = (data && data.detail) ? String(data.detail) : "Export failed.";
-          statusEl.classList.add("error");
+          showStatus((data && data.detail) ? String(data.detail) : "Export failed.", { error: true, sticky: true });
           if (r.status === 401) {
             setTimeout(() => {
               window.location.href = "/account";
@@ -626,14 +717,12 @@
           }
           return;
         }
-        statusEl.textContent = `Created YouTube playlist (${data.addedCount || 0} added). Opening…`;
-        statusEl.classList.remove("error");
+        showStatus(`Created YouTube playlist (${data.addedCount || 0} added). Opening…`);
         if (data.playlistUrl) {
           window.open(String(data.playlistUrl), "_blank", "noopener,noreferrer");
         }
       } catch (e) {
-        statusEl.textContent = `Export failed: ${e}`;
-        statusEl.classList.add("error");
+        showStatus(`Export failed: ${e}`, { error: true, sticky: true });
       } finally {
         if (btn) btn.disabled = false;
       }
@@ -763,6 +852,7 @@
           persistSavedPlaylists(rest);
           renderSavedPlaylistsPanel();
           updateSavedPlaylistsNavCount();
+          showStatus("Playlist deleted.");
         });
 
         actions.appendChild(exportBtn);
@@ -826,8 +916,7 @@
         }
         playlistMode = false;
         playingIndex = null;
-        statusEl.textContent = "Playlist finished.";
-        statusEl.classList.remove("error");
+        showStatus("Playlist finished.");
         updatePlayButtons();
         updatePlaylistBar();
         return;
@@ -891,13 +980,11 @@
         playLoadingIndex = null;
         updatePlayButtons();
         if (fromPlaylist && index + 1 < currentSongs.length) {
-          statusEl.textContent = `Skipping track ${index + 1} (no preview)…`;
-          statusEl.classList.remove("error");
+          showStatus(`Skipping track ${index + 1} (no preview)…`);
           await playTrackAt(index + 1, { fromPlaylist: true });
           return;
         }
-        statusEl.textContent = e.message || "Preview not available.";
-        statusEl.classList.remove("error");
+        showStatus(e.message || "Preview not available.");
         updatePlaylistBar();
         return;
       }
@@ -907,11 +994,10 @@
       playingIndex = index;
       try {
         await audioPlayer.play();
-        statusEl.classList.remove("error");
+        statusToastEl && statusToastEl.classList.remove("error");
       } catch (_) {
         playingIndex = null;
-        statusEl.textContent = "Could not play audio in this browser.";
-        statusEl.classList.add("error");
+        showStatus("Could not play audio in this browser.", { error: true, sticky: true });
       }
       updatePlayButtons();
       updatePlaylistBar();
@@ -1037,9 +1123,13 @@
         if (playLoadingIndex !== null && playLoadingIndex > index) playLoadingIndex--;
       }
 
+      const removed = favorites[index];
       favorites.splice(index, 1);
       persistFavorites();
       renderFavoritesList();
+      showStatus(
+        `Removed from Saved: ${String(removed && removed.title ? removed.title : "track")} — ${String(removed && removed.artist ? removed.artist : "")}`.trim()
+      );
     }
 
     function renderFavoritesList() {
