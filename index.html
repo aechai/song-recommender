@@ -6,19 +6,21 @@
   <title>Song Recommender</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Montserrat:wght@400;500;600;700&family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet" />
   <style>
     :root {
-      --bg: #0c0d12;
-      --bg-elevated: #14151c;
-      --border: rgba(255, 255, 255, 0.08);
-      --text: #e8e9ed;
-      --muted: #8b8f9a;
-      --accent: #7c5cff;
-      --accent-dim: rgba(124, 92, 255, 0.15);
-      --danger: #f87171;
-      --radius: 14px;
-      --shadow: 0 18px 50px rgba(0, 0, 0, 0.45);
+      --bg: #fff5f7;
+      --bg-elevated: rgba(255, 255, 255, 0.42);
+      --border: rgba(255, 255, 255, 0.68);
+      --text: #4c3b44;
+      --muted: #8f7784;
+      --accent: #c79b6b;
+      --accent-soft: #d8b89b;
+      --sage: #9bb8a5;
+      --accent-dim: rgba(199, 155, 107, 0.2);
+      --danger: #d47386;
+      --radius: 24px;
+      --shadow: 0 22px 42px rgba(181, 139, 158, 0.18);
     }
 
     * {
@@ -28,10 +30,12 @@
     body {
       margin: 0;
       min-height: 100vh;
-      font-family: "DM Sans", system-ui, sans-serif;
-      background: radial-gradient(1200px 600px at 10% -10%, rgba(124, 92, 255, 0.18), transparent 55%),
-        radial-gradient(900px 500px at 90% 0%, rgba(56, 189, 248, 0.1), transparent 50%),
-        var(--bg);
+      font-family: "Montserrat", system-ui, sans-serif;
+      background:
+        radial-gradient(1000px 700px at -8% -12%, #fce4ec 0%, rgba(252, 228, 236, 0.15) 62%, transparent 100%),
+        radial-gradient(920px 620px at 108% -4%, #f3e5f5 0%, rgba(243, 229, 245, 0.14) 60%, transparent 100%),
+        radial-gradient(900px 500px at 50% 112%, #fff5f7 0%, rgba(255, 245, 247, 0.8) 58%, transparent 100%),
+        linear-gradient(145deg, #fff8f3 0%, #fff5f7 45%, #f9eef7 100%);
       color: var(--text);
       line-height: 1.5;
     }
@@ -56,11 +60,12 @@
       display: inline-flex;
       align-items: center;
       gap: 0.25rem;
-      background: var(--bg-elevated);
-      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.48);
+      border: 1px solid rgba(255, 255, 255, 0.72);
       border-radius: 999px;
       padding: 0.22rem;
-      box-shadow: var(--shadow);
+      box-shadow: 0 10px 20px rgba(181, 139, 158, 0.14);
+      backdrop-filter: blur(10px);
     }
 
     .lang-btn {
@@ -83,8 +88,8 @@
 
     .lang-btn.is-active {
       color: #fff;
-      background: linear-gradient(135deg, var(--accent), #5b8cff);
-      box-shadow: 0 6px 16px rgba(124, 92, 255, 0.32);
+      background: linear-gradient(135deg, var(--accent), var(--accent-soft));
+      box-shadow: 0 8px 14px rgba(199, 155, 107, 0.35);
     }
 
     .site-nav {
@@ -102,18 +107,19 @@
       border-radius: 999px;
       padding: 0.35rem 0.85rem;
       border: 1px solid transparent;
-      transition: color 0.15s, border-color 0.15s, background 0.15s;
+      transition: color 0.18s, border-color 0.18s, background 0.18s, transform 0.18s;
     }
 
     .nav-link:hover {
       color: var(--text);
-      border-color: var(--border);
-      background: var(--bg-elevated);
+      border-color: rgba(255, 255, 255, 0.78);
+      background: rgba(255, 255, 255, 0.46);
+      transform: translateY(-1px);
     }
 
     .nav-link[aria-current="page"] {
       color: var(--text);
-      border-color: rgba(124, 92, 255, 0.35);
+      border-color: rgba(199, 155, 107, 0.38);
       background: var(--accent-dim);
     }
 
@@ -124,10 +130,13 @@
     }
 
     h1 {
+      font-family: "Playfair Display", Georgia, serif;
       font-size: clamp(1.75rem, 4vw, 2.25rem);
-      font-weight: 700;
-      letter-spacing: -0.03em;
+      font-weight: 800;
+      letter-spacing: -0.01em;
       margin: 0 0 0.5rem;
+      color: #6d4a58;
+      text-shadow: 0 0 16px rgba(231, 185, 202, 0.45);
     }
 
     .sub {
@@ -136,12 +145,13 @@
     }
 
     .panel {
-      background: linear-gradient(145deg, rgba(255, 255, 255, 0.04), transparent);
+      background: rgba(255, 255, 255, 0.38);
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      padding: 1.25rem;
+      padding: 1.4rem;
       box-shadow: var(--shadow);
       margin-bottom: 2rem;
+      backdrop-filter: blur(15px);
     }
 
     label {
@@ -157,19 +167,20 @@
       min-height: 110px;
       resize: vertical;
       padding: 0.85rem 1rem;
-      border-radius: 10px;
-      border: 1px solid var(--border);
-      background: var(--bg-elevated);
+      border-radius: 18px;
+      border: 1px solid rgba(255, 255, 255, 0.75);
+      background: rgba(255, 255, 255, 0.52);
       color: var(--text);
       font-family: inherit;
       font-size: 1rem;
       outline: none;
-      transition: border-color 0.15s, box-shadow 0.15s;
+      transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
     }
 
     textarea:focus {
-      border-color: rgba(124, 92, 255, 0.5);
-      box-shadow: 0 0 0 3px var(--accent-dim);
+      border-color: rgba(199, 155, 107, 0.55);
+      box-shadow: 0 0 0 3px rgba(199, 155, 107, 0.22);
+      background: rgba(255, 255, 255, 0.68);
     }
 
     textarea::placeholder {
@@ -192,15 +203,16 @@
       border-radius: 999px;
       border: none;
       cursor: pointer;
-      background: linear-gradient(135deg, var(--accent), #5b8cff);
+      background: linear-gradient(135deg, var(--accent), var(--accent-soft));
       color: #fff;
-      box-shadow: 0 8px 24px rgba(124, 92, 255, 0.35);
-      transition: transform 0.12s, filter 0.12s, opacity 0.12s;
+      box-shadow: 0 10px 22px rgba(199, 155, 107, 0.3);
+      transition: transform 0.16s, filter 0.16s, opacity 0.16s, box-shadow 0.16s;
     }
 
     button:hover:not(:disabled) {
       filter: brightness(1.06);
-      transform: translateY(-1px);
+      transform: translateY(-2px);
+      box-shadow: 0 12px 26px rgba(199, 155, 107, 0.34);
     }
 
     button:disabled {
@@ -210,14 +222,14 @@
     }
 
     button.btn-secondary {
-      background: transparent;
+      background: rgba(255, 255, 255, 0.4);
       color: var(--text);
-      border: 1px solid var(--border);
+      border: 1px solid rgba(255, 255, 255, 0.72);
       box-shadow: none;
     }
 
     button.btn-secondary:hover:not(:disabled) {
-      border-color: rgba(124, 92, 255, 0.45);
+      border-color: rgba(199, 155, 107, 0.45);
       background: var(--accent-dim);
     }
 
@@ -278,19 +290,21 @@
     }
 
     .card {
-      background: var(--bg-elevated);
-      border: 1px solid var(--border);
-      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.42);
+      border: 1px solid rgba(255, 255, 255, 0.72);
+      border-radius: 22px;
       padding: 1.1rem 1.15rem;
       display: flex;
       flex-direction: column;
       gap: 0.5rem;
-      transition: border-color 0.15s, transform 0.15s;
+      transition: border-color 0.18s, transform 0.18s, box-shadow 0.18s;
+      backdrop-filter: blur(15px);
     }
 
     .card:hover {
-      border-color: rgba(124, 92, 255, 0.35);
+      border-color: rgba(199, 155, 107, 0.42);
       transform: translateY(-2px);
+      box-shadow: 0 16px 24px rgba(181, 139, 158, 0.16);
     }
 
     .card-header-row {
@@ -304,7 +318,7 @@
       font-family: "JetBrains Mono", monospace;
       font-size: 0.7rem;
       font-weight: 500;
-      color: var(--accent);
+      color: #a67f59;
       letter-spacing: 0.06em;
       text-transform: uppercase;
     }
@@ -343,6 +357,7 @@
     }
 
     .card-title {
+      font-family: "Playfair Display", Georgia, serif;
       font-size: 1.1rem;
       font-weight: 600;
       letter-spacing: -0.02em;
@@ -357,10 +372,10 @@
 
     .card-why {
       font-size: 0.88rem;
-      color: #a4a8b5;
+      color: #806976;
       margin: 0.35rem 0 0;
       padding-top: 0.65rem;
-      border-top: 1px solid var(--border);
+      border-top: 1px solid rgba(255, 255, 255, 0.7);
       line-height: 1.45;
     }
 
@@ -387,9 +402,9 @@
       border-radius: 999px;
       border: none;
       cursor: pointer;
-      background: linear-gradient(135deg, var(--accent), #5b8cff);
+      background: linear-gradient(135deg, var(--accent), var(--accent-soft));
       color: #fff;
-      box-shadow: 0 6px 18px rgba(124, 92, 255, 0.28);
+      box-shadow: 0 8px 16px rgba(199, 155, 107, 0.28);
       transition: transform 0.12s, filter 0.12s, opacity 0.12s;
     }
 
@@ -449,10 +464,11 @@
     }
 
     .playlist-bar-inner {
-      background: var(--bg-elevated);
-      border: 1px solid var(--border);
-      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.42);
+      border: 1px solid rgba(255, 255, 255, 0.72);
+      border-radius: 22px;
       padding: 1rem 1.15rem;
+      backdrop-filter: blur(15px);
     }
 
     .playlist-now {
@@ -506,9 +522,9 @@
       gap: 0.75rem;
       padding: 0.85rem 0.95rem;
       border-radius: 999px;
-      background: rgba(20, 21, 28, 0.92);
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55);
+      background: rgba(255, 255, 255, 0.68);
+      border: 1px solid rgba(255, 255, 255, 0.8);
+      box-shadow: 0 18px 36px rgba(181, 139, 158, 0.2);
       backdrop-filter: blur(10px);
       z-index: 999;
     }
@@ -523,7 +539,7 @@
 
     .toast-text {
       font-size: 0.92rem;
-      color: var(--text);
+      color: #5c4552;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
@@ -531,9 +547,9 @@
 
     .toast-close {
       appearance: none;
-      border: 1px solid var(--border);
+      border: 1px solid rgba(255, 255, 255, 0.78);
       background: transparent;
-      color: var(--muted);
+      color: #8f7784;
       border-radius: 999px;
       width: 2.1rem;
       height: 2.1rem;
@@ -548,8 +564,14 @@
 
     .toast-close:hover {
       color: var(--text);
-      border-color: rgba(255, 255, 255, 0.16);
-      background: rgba(255, 255, 255, 0.06);
+      border-color: rgba(199, 155, 107, 0.4);
+      background: rgba(255, 255, 255, 0.5);
+    }
+
+    #heading-describe::after {
+      content: " ✨";
+      color: var(--accent);
+      text-shadow: 0 0 12px rgba(199, 155, 107, 0.45);
     }
 
     @media (prefers-reduced-motion: reduce) {

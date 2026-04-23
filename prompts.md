@@ -321,3 +321,35 @@ Requirements:
 - **Backend extension**: `main.py` includes a translation endpoint with JSON-only response constraints and length/order validation.
 - **Documentation**: README and prompts history reflect the multilingual feature and the new API contract.
 
+---
+
+## Prompt 10 — Pinterest/aura visual theme pass + persona-name translation
+
+### Prompt
+Apply a style-only overhaul across the frontend to match a Pinterest party-girl / dreamy aura aesthetic, while keeping existing logic unchanged.
+
+Requirements:
+
+- Keep all core functionality exactly the same (recommendation flows, quiz behavior, language toggle behavior, YouTube export/search, favorites/playlists interactions).
+- Update CSS across main pages to a soft aura palette:
+  - Background tones around `#FFF5F7`, `#FCE4EC`, `#F3E5F5`
+  - Rose-gold/champagne accent gradients, plus soft muted supporting accents.
+- Update typography:
+  - Serif-style headers (e.g., `Playfair Display`)
+  - Clean sans-serif body text (e.g., `Montserrat`)
+- Apply glassmorphism styling to key containers (cards/panels/toasts/nav toggle):
+  - Semi-transparent white backgrounds
+  - Thin light borders
+  - `backdrop-filter: blur(...)`
+- Increase corner softness and hover polish:
+  - Rounded corners (about `20px+`)
+  - Lifted hover shadows on interactive controls.
+- Add subtle sparkle/glow emphasis in persona-related UI.
+- Ensure persona text localization parity:
+  - On quiz language toggle, translate the **persona name value** itself in place.
+
+### Effects
+- **Visual cohesion**: All major pages share a unified aura/glassmorphism aesthetic.
+- **No behavior regressions**: JavaScript logic and API contracts remain intact.
+- **Persona polish + localization**: Persona presentation is visually emphasized and fully translated on EN/ES switches (label + persona name).
+

@@ -263,3 +263,12 @@ Notes:
 - **Quiz payload localization:** Quiz option labels are localized, and quiz answer payload text can be language-aware when building the `Quiz Results:` prompt.
 
 ---
+
+## Add-on updates (latest + theme pass)
+
+- **Aesthetic UI overhaul:** `index.html`, `personality-quiz.html`, `favorites.html`, `playlists.html`, and `account.html` were updated to a soft Pinterest/aura visual style (dreamy gradients, glassmorphism panels/cards, rounded corners, and lifted gradient buttons) while preserving existing functionality.
+- **Typography refresh:** UI now uses a serif-forward headline style (`Playfair Display`) with clean sans-serif body copy (`Montserrat`) for a more editorial/pinterest feel.
+- **Persona visual polish:** The quiz persona area includes subtle glow/sparkle treatment for stronger emphasis.
+- **Persona name translation on toggle:** On the quiz page, switching EN/ES now translates the **persona name text itself** (not only the “Your musical persona” label), using the same in-place translation approach.
+
+---

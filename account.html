@@ -6,19 +6,20 @@
   <title>Account — Song Recommender</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Montserrat:wght@400;500;600;700&family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet" />
   <style>
     :root {
-      --bg: #0c0d12;
-      --bg-elevated: #14151c;
-      --border: rgba(255, 255, 255, 0.08);
-      --text: #e8e9ed;
-      --muted: #8b8f9a;
-      --accent: #7c5cff;
-      --accent-dim: rgba(124, 92, 255, 0.15);
-      --danger: #f87171;
-      --radius: 14px;
-      --shadow: 0 18px 50px rgba(0, 0, 0, 0.45);
+      --bg: #fff5f7;
+      --bg-elevated: rgba(255, 255, 255, 0.42);
+      --border: rgba(255, 255, 255, 0.68);
+      --text: #4c3b44;
+      --muted: #8f7784;
+      --accent: #c79b6b;
+      --accent-soft: #d8b89b;
+      --accent-dim: rgba(199, 155, 107, 0.2);
+      --danger: #d47386;
+      --radius: 24px;
+      --shadow: 0 22px 42px rgba(181, 139, 158, 0.18);
     }
 
     * { box-sizing: border-box; }
@@ -26,10 +27,12 @@
     body {
       margin: 0;
       min-height: 100vh;
-      font-family: "DM Sans", system-ui, sans-serif;
-      background: radial-gradient(1200px 600px at 10% -10%, rgba(124, 92, 255, 0.18), transparent 55%),
-        radial-gradient(900px 500px at 90% 0%, rgba(56, 189, 248, 0.1), transparent 50%),
-        var(--bg);
+      font-family: "Montserrat", system-ui, sans-serif;
+      background:
+        radial-gradient(1000px 700px at -8% -12%, #fce4ec 0%, rgba(252, 228, 236, 0.15) 62%, transparent 100%),
+        radial-gradient(920px 620px at 108% -4%, #f3e5f5 0%, rgba(243, 229, 245, 0.14) 60%, transparent 100%),
+        radial-gradient(900px 500px at 50% 112%, #fff5f7 0%, rgba(255, 245, 247, 0.8) 58%, transparent 100%),
+        linear-gradient(145deg, #fff8f3 0%, #fff5f7 45%, #f9eef7 100%);
       color: var(--text);
       line-height: 1.5;
     }
@@ -42,10 +45,10 @@
 
     header { margin-bottom: 2rem; }
     .header-top { display: flex; justify-content: flex-end; margin-bottom: 0.9rem; }
-    .lang-toggle { display: inline-flex; gap: 0.25rem; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 999px; padding: 0.22rem; box-shadow: var(--shadow); }
+    .lang-toggle { display: inline-flex; gap: 0.25rem; background: rgba(255, 255, 255, 0.48); border: 1px solid rgba(255, 255, 255, 0.72); border-radius: 999px; padding: 0.22rem; box-shadow: 0 10px 20px rgba(181, 139, 158, 0.14); backdrop-filter: blur(10px); }
     .lang-btn { appearance: none; border: 0; background: transparent; color: var(--muted); font-size: 0.78rem; font-weight: 700; letter-spacing: 0.04em; padding: 0.32rem 0.65rem; border-radius: 999px; cursor: pointer; transition: background 0.15s, color 0.15s; }
     .lang-btn:hover { color: var(--text); }
-    .lang-btn.is-active { color: #fff; background: linear-gradient(135deg, var(--accent), #5b8cff); box-shadow: 0 6px 16px rgba(124, 92, 255, 0.32); }
+    .lang-btn.is-active { color: #fff; background: linear-gradient(135deg, var(--accent), var(--accent-soft)); box-shadow: 0 8px 14px rgba(199, 155, 107, 0.35); }
 
     .site-nav {
       display: flex;
@@ -62,18 +65,19 @@
       border-radius: 999px;
       padding: 0.35rem 0.85rem;
       border: 1px solid transparent;
-      transition: color 0.15s, border-color 0.15s, background 0.15s;
+      transition: color 0.18s, border-color 0.18s, background 0.18s, transform 0.18s;
     }
 
     .nav-link:hover {
       color: var(--text);
-      border-color: var(--border);
-      background: var(--bg-elevated);
+      border-color: rgba(255, 255, 255, 0.78);
+      background: rgba(255, 255, 255, 0.46);
+      transform: translateY(-1px);
     }
 
     .nav-link[aria-current="page"] {
       color: var(--text);
-      border-color: rgba(124, 92, 255, 0.35);
+      border-color: rgba(199, 155, 107, 0.38);
       background: var(--accent-dim);
     }
 
@@ -84,10 +88,13 @@
     }
 
     h1 {
+      font-family: "Playfair Display", Georgia, serif;
       font-size: clamp(1.75rem, 4vw, 2.25rem);
-      font-weight: 700;
-      letter-spacing: -0.03em;
+      font-weight: 800;
+      letter-spacing: -0.01em;
       margin: 0 0 0.5rem;
+      color: #6d4a58;
+      text-shadow: 0 0 16px rgba(231, 185, 202, 0.45);
     }
 
     .sub {
@@ -97,12 +104,13 @@
     }
 
     .panel {
-      background: linear-gradient(145deg, rgba(255, 255, 255, 0.04), transparent);
+      background: rgba(255, 255, 255, 0.38);
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      padding: 1.25rem;
+      padding: 1.4rem;
       box-shadow: var(--shadow);
       margin-bottom: 2rem;
+      backdrop-filter: blur(15px);
     }
 
     .row {
@@ -115,7 +123,7 @@
 
     .btn {
       appearance: none;
-      border: 1px solid rgba(124, 92, 255, 0.35);
+      border: 1px solid rgba(255, 255, 255, 0.75);
       background: var(--accent-dim);
       color: var(--text);
       font-family: inherit;
@@ -124,35 +132,36 @@
       padding: 0.65rem 0.95rem;
       border-radius: 999px;
       cursor: pointer;
-      transition: transform 0.12s, background 0.15s, border-color 0.15s;
+      transition: transform 0.16s, background 0.16s, border-color 0.16s, box-shadow 0.16s;
     }
 
     .btn:hover {
-      transform: translateY(-1px);
-      background: rgba(124, 92, 255, 0.22);
-      border-color: rgba(124, 92, 255, 0.55);
+      transform: translateY(-2px);
+      background: rgba(199, 155, 107, 0.24);
+      border-color: rgba(199, 155, 107, 0.52);
+      box-shadow: 0 10px 18px rgba(199, 155, 107, 0.24);
     }
 
     .btn-secondary {
-      border-color: var(--border);
-      background: var(--bg-elevated);
+      border-color: rgba(255, 255, 255, 0.72);
+      background: rgba(255, 255, 255, 0.45);
       font-weight: 650;
     }
 
     .btn-secondary:hover {
-      background: rgba(255, 255, 255, 0.06);
-      border-color: rgba(255, 255, 255, 0.14);
+      background: rgba(255, 255, 255, 0.58);
+      border-color: rgba(199, 155, 107, 0.36);
     }
 
     .btn-danger {
-      border: 1px solid rgba(248, 113, 113, 0.45);
-      background: rgba(248, 113, 113, 0.1);
+      border: 1px solid rgba(212, 115, 134, 0.45);
+      background: rgba(212, 115, 134, 0.12);
       color: var(--danger);
     }
 
     .btn-danger:hover {
-      background: rgba(248, 113, 113, 0.16);
-      border-color: rgba(248, 113, 113, 0.6);
+      background: rgba(212, 115, 134, 0.18);
+      border-color: rgba(212, 115, 134, 0.6);
     }
 
     .status {
