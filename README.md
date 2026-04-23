@@ -1,6 +1,6 @@
 # Song Recommender
 
-A small **FastAPI** app with a static frontend that suggests **8 songs at a time** from a natural-language prompt, using **Together AI** (Llama 3 chat models). It includes **30-second Apple Music previews** (via Apple’s public Search API), **favorites**, **saved playlists**, and **“more like this track”** flows. There is **no user database**; favorites and playlists live in the **browser’s `localStorage`**.
+A small **FastAPI** app with a static frontend that suggests **20 songs at a time** from a natural-language prompt, using **Together AI** (Llama 3 chat models). It includes **30-second Apple Music previews** (via Apple’s public Search API), **Saved tracks**, **saved playlists**, **“more like this track”** flows, and **optional YouTube export** via Google OAuth. There is **no user database**; Saved tracks and playlists live in the **browser’s `localStorage`**.
 
 ---
 
@@ -8,16 +8,16 @@ A small **FastAPI** app with a static frontend that suggests **8 songs at a time
 
 | Area | What it does |
 |------|----------------|
-| **Recommendations** | Enter a vibe, genre, artist, or scenario; the model returns **8** tracks with a short **why** for each. |
-| **Music personality quiz** | On **`/personality-quiz`**, answer **5** multiple-choice questions; the model returns a **musical persona** plus **20** song picks with a short **why** each (answers are sent as `Quiz Results: …` to **`POST /api/recommend`**). Same previews, optional favorites-as-context, redo / more-like, hearts, and save-playlist as the main UI. |
-| **Favorites as context** | Optional checkbox sends up to **40** saved favorites (title + artist) with the prompt so picks align with taste. |
+| **Recommendations** | Enter a vibe, genre, artist, or scenario; the model returns **20** tracks with a short **why** for each. |
+| **Music personality quiz** | On **`/personality-quiz`**, answer **5** multiple-choice questions; the model returns a **musical persona** plus **20** song picks with a short **why** each (answers are sent as `Quiz Results: …` to **`POST /api/recommend`**). Same previews, optional Saved-as-context, redo / more-like, hearts, and save-playlist as the main UI. |
+| **Saved as context** | Optional checkbox sends up to **40** saved tracks (title + artist) with the prompt so picks align with taste. |
 | **Redo one track** | Replace a single card with another song that still fits the same prompt (avoids duplicates with the rest of the list and favorites). |
-| **More like this** | Pick one result; the app fetches **7** similar songs and shows **8** tracks total with your pick **first**. |
+| **More like this** | Pick one result; the app fetches **19** similar songs and shows **20** tracks total with your pick **first**. |
 | **Previews** | Per-track **Play** and a small **playlist preview bar** play **~30s** clips when Apple’s catalog returns a `previewUrl`. |
-| **Favorites** | Heart tracks on the home page; manage them on **Favorite tracks** (`/favorites`) with remove and preview-in-order. |
-| **Saved playlists** | **Save playlist** on the home page stores the current 8 tracks; names are auto **`Playlist #1`**, **`Playlist #2`**, … (next number = max existing `Playlist #n` + 1). Up to **40** playlists kept (newest first). |
-| **Playlists page** | **`/playlists`** lists saved playlists, optional saved **request** text, ordered tracks (title — artist), and delete. |
-| **Favorites page tabs** | On **`/favorites`**, switch between **Favorite tracks** and **Saved playlists** without leaving the page. |
+| **Saved tracks** | Heart tracks on the home page; manage them on **Saved** (`/favorites`) with remove and preview-in-order. |
+| **Saved playlists** | **Save playlist** on the home page stores the current playlist; names are auto **`Playlist #1`**, **`Playlist #2`**, … (next number = max existing `Playlist #n` + 1). Up to **40** playlists kept (newest first). |
+| **Saved page tabs** | On **`/favorites`**, switch between **Saved** and **Saved playlists** without leaving the page. |
+| **YouTube export** | Link a Google account on **`/account`**, then export the current playlist, any saved playlist, or all saved tracks to a YouTube playlist. |
 
 
 ---
@@ -27,7 +27,7 @@ A small **FastAPI** app with a static frontend that suggests **8 songs at a time
 - **Backend:** FastAPI, Pydantic, httpx, python-dotenv, **Together** Python SDK.
 - **Models (Together):** Primary `meta-llama/Llama-3-70b-chat-hf`, fallback `meta-llama/Llama-3.3-70B-Instruct-Turbo` if the primary call fails.
 - **Previews:** Apple iTunes Search API (`https://itunes.apple.com/search`) — **no API key**.
-- **Frontend:** Static `index.html`, `personality-quiz.html`, `favorites.html`, `playlists.html` (vanilla JS, `localStorage`).
+- **Frontend:** Static `index.html`, `personality-quiz.html`, `favorites.html`, `playlists.html`, `account.html` (vanilla JS, `localStorage`).
 
 ---
 
@@ -38,8 +38,9 @@ A small **FastAPI** app with a static frontend that suggests **8 songs at a time
 | `main.py` | FastAPI app, Together chat calls, JSON parsing/retries, iTunes preview proxy. |
 | `index.html` | Main recommender UI (describe-based flow). |
 | `personality-quiz.html` | Musical Personality Quiz UI (separate page). |
-| `favorites.html` | Favorites + in-page **Saved playlists** tab. |
-| `playlists.html` | Standalone saved-playlists view. |
+| `favorites.html` | Saved tracks + in-page **Saved playlists** tab. |
+| `playlists.html` | Standalone saved-playlists view (also shown in the Saved page tab). |
+| `account.html` | Link/unlink Google account for YouTube export. |
 | `requirements.txt` | Python dependencies. |
 | `.env` | Local secrets (Together). **Do not commit.** |
 
@@ -128,7 +129,7 @@ Response:
 }
 ```
 
-The UI expects **8** songs; the model is instructed accordingly, but the client renders whatever list is returned after normalization.
+The UI expects **20** songs (default); the client renders whatever list is returned after normalization.
 
 ### `POST /api/recommend/one`
 
@@ -151,7 +152,7 @@ Response: `{ "song": { "title", "artist", "why" } }`.
 
 **More like this:** body includes `seed` (title/artist), optional `seed_why`, optional `context_prompt` (original textarea), optional `favorites`.
 
-Response: `{ "songs": [ … ] }` — **8** items: the **seed first**, then **7** similar tracks.
+Response: `{ "songs": [ … ] }` — **20** items: the **seed first**, then **19** similar tracks.
 
 ### `GET /api/preview`
 
@@ -190,18 +191,18 @@ Notes:
 | `songRecommenderFavorites` | Array of `{ title, artist, why? }` for hearted tracks. |
 | `songRecommenderSavedPlaylists` | Array of `{ id, name, savedAt, prompt?, tracks: [{ title, artist }] }`. |
 
-Counts in the nav update when storage changes (e.g. another tab). **Clearing site data** removes favorites and playlists.
+**Clearing site data** removes Saved tracks and playlists.
 
 ---
 
 ## Current limitations
 
 - **LLM output:** Titles/artists are model-generated; mistakes or obscure picks can occur. The app **retries** on bad JSON and on some duplicate cases for replace/similar flows, but cannot guarantee correctness.
-- **No accounts / no server-side library:** Favorites and playlists are **only on that browser** unless you export them yourself (not built in).
+- **No user database:** Saved tracks/playlists are **only in that browser**. YouTube linking is **session-only** (in-memory) and requires re-linking after a server restart.
 - **Previews only:** Audio is **~30 seconds** from Apple’s catalog when a preview exists; **full streaming** would need Spotify/Apple Music APIs and user login (out of scope here).
 - **Preview gaps:** Some regions or tracks may have **no** `previewUrl`; the UI skips or shows an error for that clip.
 - **Together usage:** Every recommendation, redo, and similar-songs call uses the **Together API** (cost/latency/rate limits apply).
-- **Favorites in prompts:** When “use favorites” is checked, **titles and artists** are sent to Together to steer taste — do not enable if that is a concern.
+- **Saved in prompts:** When “use saved” is checked, **titles and artists** are sent to Together to steer taste — do not enable if that is a concern.
 - **Playlist naming:** Saved playlists are named **`Playlist #n`** automatically; the original request text is stored separately when present.
 
 ---
@@ -213,7 +214,7 @@ Counts in the nav update when storage changes (e.g. another tab). **Clearing sit
 | `ERR_CONNECTION_REFUSED` | Start `uvicorn` again; confirm host/port. |
 | Blank or wrong page on a port | Another app may be using that port — try **`8010`**, **`8011`**, etc. |
 | `500` / “TOGETHER_API_KEY is not set” | Add the key to **`.env`** in the project root and restart the server. |
-| Clicking Link shows an error page | Make sure you set the OAuth variables in `.env` (`SPOTIFY_CLIENT_ID`, `SPOTIFY_REDIRECT_URI`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI`) and restart `uvicorn`. Also ensure the redirect URIs match your port. |
+| Clicking Link shows an error page | Make sure you set the OAuth variables in `.env` (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI`) and restart `uvicorn`. Also ensure the redirect URI matches your port. |
 | `502` on recommend / similar / redo | Check API key, network, and Together status; retry (models occasionally return non-JSON). |
 | Preview always fails | Try a different spelling; not all songs have previews in Apple’s results. |
 | Dependencies error on `together` | Run `pip install -r requirements.txt` again from the activated venv. |
