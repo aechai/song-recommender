@@ -46,6 +46,47 @@
       margin-bottom: 2rem;
     }
 
+    .header-top {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 0.9rem;
+    }
+
+    .lang-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 0.22rem;
+      box-shadow: var(--shadow);
+    }
+
+    .lang-btn {
+      appearance: none;
+      border: 0;
+      background: transparent;
+      color: var(--muted);
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      padding: 0.32rem 0.65rem;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+    }
+
+    .lang-btn:hover {
+      color: var(--text);
+    }
+
+    .lang-btn.is-active {
+      color: #fff;
+      background: linear-gradient(135deg, var(--accent), #5b8cff);
+      box-shadow: 0 6px 16px rgba(124, 92, 255, 0.32);
+    }
+
     .site-nav {
       display: flex;
       flex-wrap: wrap;
@@ -523,45 +564,52 @@
 <body>
   <div class="wrap">
     <nav class="site-nav" aria-label="Site">
-      <a href="/" class="nav-link" aria-current="page">Recommend songs</a>
-      <a href="/favorites" class="nav-link">Saved</a>
-      <a href="/personality-quiz" class="nav-link">Personality quiz</a>
-      <a href="/account" class="nav-link">Account</a>
+      <a href="/" class="nav-link" aria-current="page" data-i18n="nav.recommend">Recommend songs</a>
+      <a href="/favorites" class="nav-link" data-i18n="nav.saved">Saved</a>
+      <a href="/personality-quiz" class="nav-link" data-i18n="nav.quiz">Personality quiz</a>
+      <a href="/account" class="nav-link" data-i18n="nav.account">Account</a>
     </nav>
 
     <header>
-      <h1>Song Recommender</h1>
-      <p class="sub">Get <strong>20</strong> songs from a description. For a named <strong>musical persona</strong> plus <strong>20</strong> picks, open the <a href="/personality-quiz" style="color: var(--accent); font-weight: 600">Musical Personality Quiz</a>.</p>
+      <div class="header-top">
+        <div class="lang-toggle" role="group" aria-label="Language selector">
+          <button type="button" class="lang-btn is-active" id="langEn" data-lang="en">EN</button>
+          <button type="button" class="lang-btn" id="langEs" data-lang="es">ES</button>
+        </div>
+      </div>
+      <h1 data-i18n="header.title">Song Recommender</h1>
+      <p class="sub"><span data-i18n="header.subPrefix">Get <strong>20</strong> songs from a description. For a named <strong>musical persona</strong> plus <strong>20</strong> picks, open the </span><a href="/personality-quiz" style="color: var(--accent); font-weight: 600" data-i18n="header.quizLink">Musical Personality Quiz</a><span data-i18n="header.subSuffix">.</span></p>
     </header>
 
     <div class="toast" id="statusToast" role="status" aria-live="polite">
       <span class="toast-text" id="statusText"></span>
-      <button type="button" class="toast-close" id="statusToastClose" aria-label="Dismiss status">×</button>
+      <button type="button" class="toast-close" id="statusToastClose" aria-label="Dismiss status" data-i18n-aria-label="toast.dismiss">×</button>
     </div>
 
     <section id="panel-describe" class="panel" aria-label="Request form" style="scroll-margin-top: 0.5rem">
-      <h2 class="section-heading" id="heading-describe" style="margin: 0 0 0.75rem; font-size: 1.1rem; font-weight: 700">Describe</h2>
-      <label for="prompt">What do you want to hear?</label>
+      <h2 class="section-heading" id="heading-describe" style="margin: 0 0 0.75rem; font-size: 1.1rem; font-weight: 700" data-i18n="form.describeTitle">Describe</h2>
+      <label for="prompt" data-i18n="form.promptLabel">What do you want to hear?</label>
       <textarea
         id="prompt"
+        data-i18n-placeholder="form.promptPlaceholder"
         placeholder="e.g. Late-night synth-pop with dreamy vocals, similar to The Weeknd but more upbeat…"
       ></textarea>
       <div class="favorites-opt-row favorites-opt-disabled" id="useFavoritesWrap">
         <label class="favorites-opt-label" for="useFavorites">
           <input type="checkbox" id="useFavorites" disabled />
-          <span>Use my saved favorites as taste context (<span id="useFavoritesCount">0</span>)</span>
+          <span><span data-i18n="form.useFavoritesPrefix">Use my saved favorites as taste context</span> (<span id="useFavoritesCount">0</span>)</span>
         </label>
-        <p class="favorites-opt-hint">
+        <p class="favorites-opt-hint" data-i18n="form.useFavoritesHint">
           When checked, your ♥ list (title and artist, up to 40 tracks) is sent with your prompt so picks
           match your taste. Add favorites from results or the favorites page.
         </p>
       </div>
       <div class="row">
-        <button type="button" id="submit">Get recommendations</button>
-        <button type="button" class="btn-secondary" id="randomPrompt" aria-label="Fill with a random playlist idea">
+        <button type="button" id="submit" data-i18n="form.submit">Get recommendations</button>
+        <button type="button" class="btn-secondary" id="randomPrompt" aria-label="Fill with a random playlist idea" data-i18n="form.surprise" data-i18n-aria-label="form.surpriseAria">
           Surprise me
         </button>
-        <span class="hint">Press the button or use Ctrl+Enter</span>
+        <span class="hint" data-i18n="form.hint">Press the button or use Ctrl+Enter</span>
       </div>
     </section>
 
@@ -570,14 +618,14 @@
         <div class="playlist-bar-inner">
           <p class="playlist-now" id="playlistNow"></p>
           <div class="playlist-bar-row">
-            <button type="button" id="playlistPlayAll" aria-label="Preview playlist" title="Preview playlist">▶</button>
-            <button type="button" class="btn-secondary" id="playlistPrev" aria-label="Previous track" title="Previous track">⏮</button>
-            <button type="button" class="btn-secondary" id="playlistNext" aria-label="Next track" title="Next track">⏭</button>
-            <button type="button" class="btn-secondary" id="playlistStop" aria-label="Stop playback" title="Stop">⏹</button>
-            <button type="button" class="btn-secondary" id="savePlaylistBtn">Save playlist</button>
-            <button type="button" class="btn-secondary" id="exportYoutubeBtn">Export to YouTube</button>
+            <button type="button" id="playlistPlayAll" aria-label="Preview playlist" title="Preview playlist" data-i18n-aria-label="playlist.preview" data-i18n-title="playlist.preview">▶</button>
+            <button type="button" class="btn-secondary" id="playlistPrev" aria-label="Previous track" title="Previous track" data-i18n-aria-label="playlist.prev" data-i18n-title="playlist.prev">⏮</button>
+            <button type="button" class="btn-secondary" id="playlistNext" aria-label="Next track" title="Next track" data-i18n-aria-label="playlist.next" data-i18n-title="playlist.next">⏭</button>
+            <button type="button" class="btn-secondary" id="playlistStop" aria-label="Stop playback" title="Stop" data-i18n-aria-label="playlist.stop" data-i18n-title="playlist.stop">⏹</button>
+            <button type="button" class="btn-secondary" id="savePlaylistBtn" data-i18n="playlist.save">Save playlist</button>
+            <button type="button" class="btn-secondary" id="exportYoutubeBtn" data-i18n="playlist.export">Export to YouTube</button>
           </div>
-          <p class="playlist-hint">
+          <p class="playlist-hint" data-i18n="playlist.hint">
             Plays your list in order using ~30-second previews from Apple’s catalog (same as each track’s ▶).
             Full songs require a streaming service (e.g. Spotify or Apple Music) with login and their APIs.
           </p>
@@ -597,6 +645,247 @@
     const statusEl = statusTextEl;
     const gridEl = document.getElementById("grid");
     const favoritesNavCountEl = document.getElementById("favoritesNavCount");
+    const LANGUAGE_STORAGE_KEY = "songRecommenderLanguage";
+    let currentLanguage = "en";
+    const translations = {
+      en: {
+        "nav.recommend": "Recommend songs",
+        "nav.saved": "Saved",
+        "nav.quiz": "Personality quiz",
+        "nav.account": "Account",
+        "header.title": "Song Recommender",
+        "header.subPrefix": "Get <strong>20</strong> songs from a description. For a named <strong>musical persona</strong> plus <strong>20</strong> picks, open the ",
+        "header.quizLink": "Musical Personality Quiz",
+        "header.subSuffix": ".",
+        "toast.dismiss": "Dismiss status",
+        "form.describeTitle": "Describe",
+        "form.promptLabel": "What do you want to hear?",
+        "form.promptPlaceholder": "e.g. Late-night synth-pop with dreamy vocals, similar to The Weeknd but more upbeat…",
+        "form.useFavoritesPrefix": "Use my saved favorites as taste context",
+        "form.useFavoritesHint": "When checked, your ♥ list (title and artist, up to 40 tracks) is sent with your prompt so picks match your taste. Add favorites from results or the favorites page.",
+        "form.submit": "Get recommendations",
+        "form.surprise": "Surprise me",
+        "form.surpriseAria": "Fill with a random playlist idea",
+        "form.hint": "Press the button or use Ctrl+Enter",
+        "playlist.preview": "Preview playlist",
+        "playlist.prev": "Previous track",
+        "playlist.next": "Next track",
+        "playlist.stop": "Stop playback",
+        "playlist.save": "Save playlist",
+        "playlist.export": "Export to YouTube",
+        "playlist.hint": "Plays your list in order using ~30-second previews from Apple’s catalog (same as each track’s ▶). Full songs require a streaming service (e.g. Spotify or Apple Music) with login and their APIs.",
+        "status.savedPlaylist": "Saved \"{{name}}\" ({{count}} tracks). Open Saved to view or remove.",
+        "status.removedFavorite": "Removed from Saved: {{song}}",
+        "status.savedFavorite": "Saved: {{song}}",
+        "status.playlistFinished": "Playlist finished.",
+        "status.previewUnavailable": "Preview not available.",
+        "status.loadingPreview": "Loading preview…",
+        "status.playlistTrack": "Playlist: track {{index}} of {{total}} (~30s previews)",
+        "status.playlistReady": "{{count}} tracks — press ▶ to preview the entire playlist",
+        "status.skippingTrack": "Skipping track {{index}} (no preview)…",
+        "status.audioFail": "Could not play audio in this browser.",
+        "status.exportingYouTube": "Exporting to YouTube…",
+        "status.exportFailed": "Export failed.",
+        "status.createdYouTube": "Created YouTube playlist ({{count}} added). Opening…",
+        "status.exportFailedWithError": "Export failed: {{error}}",
+        "status.emptyPrompt": "Enter what you want to hear.",
+        "status.fetchingRecommendations": "Fetching recommendations…",
+        "status.refreshingLanguage": "Updating results for selected language…",
+        "status.showingTracks": "Showing {{count}} tracks",
+        "status.usedFavoritesContext": " · used your favorites as taste context",
+        "status.genericError": "Something went wrong.",
+        "status.findingSimilar": "Finding similar tracks…",
+        "status.expectedTwenty": "Expected 20 tracks from similar-songs request.",
+        "status.similarTo": "20 tracks similar to {{ref}} (includes your selected track)",
+        "status.yourPick": "your pick",
+        "status.redoNeedsBase": "Enter a description or get recommendations first — nothing to base a redo on yet.",
+        "status.findingDifferentTrack": "Finding a different track…",
+        "status.noReplacement": "No replacement song returned.",
+        "status.replacedTrack": "Replaced track {{index}} · {{count}} tracks total",
+        "status.randomIdeaFilled": "Random idea filled in — edit it or get recommendations.",
+        "card.emptyResults": "No songs returned. Try a different prompt.",
+        "card.trackLabel": "Track {{index}}",
+        "card.addFavorite": "Add to favorites",
+        "card.removeFavorite": "Remove from favorites",
+        "card.playPreview": "Play 30-second preview",
+        "card.pausePreview": "Pause preview",
+        "card.loadingPreviewAria": "Loading preview",
+        "card.playPreviewTitle": "Play preview",
+        "card.redo": "Redo",
+        "card.moreLikeThis": "More like this",
+        "card.redoAria": "Replace track {{index}} with a different song for the same prompt",
+        "card.moreLikeAria": "Replace the playlist with tracks similar to track {{index}}, including this song",
+        "instruction.recommendSpanish": "Provide the song descriptions and persona name in Spanish.",
+      },
+      es: {
+        "nav.recommend": "Recomendar canciones",
+        "nav.saved": "Guardadas",
+        "nav.quiz": "Quiz de personalidad",
+        "nav.account": "Cuenta",
+        "header.title": "Recomendador de canciones",
+        "header.subPrefix": "Obtén <strong>20</strong> canciones a partir de una descripción. Para una <strong>persona musical</strong> con nombre y <strong>20</strong> recomendaciones, abre el ",
+        "header.quizLink": "Quiz de Personalidad Musical",
+        "header.subSuffix": ".",
+        "toast.dismiss": "Cerrar estado",
+        "form.describeTitle": "Describe",
+        "form.promptLabel": "¿Qué quieres escuchar?",
+        "form.promptPlaceholder": "p. ej. synth-pop nocturno con voces soñadoras, similar a The Weeknd pero más animado…",
+        "form.useFavoritesPrefix": "Usar mis favoritas guardadas como contexto de gusto",
+        "form.useFavoritesHint": "Cuando está activado, tu lista de ♥ (título y artista, hasta 40 canciones) se envía con tu prompt para que las recomendaciones se adapten a tu gusto. Agrega favoritas desde resultados o desde la página de guardadas.",
+        "form.submit": "Obtener recomendaciones",
+        "form.surprise": "Sorpréndeme",
+        "form.surpriseAria": "Rellenar con una idea de playlist aleatoria",
+        "form.hint": "Pulsa el botón o usa Ctrl+Enter",
+        "playlist.preview": "Previsualizar playlist",
+        "playlist.prev": "Pista anterior",
+        "playlist.next": "Siguiente pista",
+        "playlist.stop": "Detener reproducción",
+        "playlist.save": "Guardar playlist",
+        "playlist.export": "Exportar a YouTube",
+        "playlist.hint": "Reproduce tu lista en orden usando previews de ~30 segundos del catálogo de Apple (igual que el ▶ de cada canción). Las canciones completas requieren un servicio de streaming (p. ej. Spotify o Apple Music) con inicio de sesión y sus APIs.",
+        "status.savedPlaylist": "Se guardó \"{{name}}\" ({{count}} canciones). Abre Guardadas para ver o eliminar.",
+        "status.removedFavorite": "Se quitó de Guardadas: {{song}}",
+        "status.savedFavorite": "Guardada: {{song}}",
+        "status.playlistFinished": "Playlist finalizada.",
+        "status.previewUnavailable": "Vista previa no disponible.",
+        "status.loadingPreview": "Cargando vista previa…",
+        "status.playlistTrack": "Playlist: pista {{index}} de {{total}} (previews de ~30 s)",
+        "status.playlistReady": "{{count}} canciones — pulsa ▶ para previsualizar toda la playlist",
+        "status.skippingTrack": "Saltando pista {{index}} (sin preview)…",
+        "status.audioFail": "No se pudo reproducir audio en este navegador.",
+        "status.exportingYouTube": "Exportando a YouTube…",
+        "status.exportFailed": "La exportación falló.",
+        "status.createdYouTube": "Playlist de YouTube creada ({{count}} añadidas). Abriendo…",
+        "status.exportFailedWithError": "La exportación falló: {{error}}",
+        "status.emptyPrompt": "Escribe lo que quieres escuchar.",
+        "status.fetchingRecommendations": "Buscando recomendaciones…",
+        "status.refreshingLanguage": "Actualizando resultados para el idioma seleccionado…",
+        "status.showingTracks": "Mostrando {{count}} canciones",
+        "status.usedFavoritesContext": " · se usaron tus favoritas como contexto de gusto",
+        "status.genericError": "Algo salió mal.",
+        "status.findingSimilar": "Buscando canciones similares…",
+        "status.expectedTwenty": "Se esperaban 20 canciones en la solicitud de similares.",
+        "status.similarTo": "20 canciones similares a {{ref}} (incluye tu canción seleccionada)",
+        "status.yourPick": "tu elección",
+        "status.redoNeedsBase": "Escribe una descripción u obtén recomendaciones primero: todavía no hay base para rehacer.",
+        "status.findingDifferentTrack": "Buscando una canción diferente…",
+        "status.noReplacement": "No se devolvió canción de reemplazo.",
+        "status.replacedTrack": "Pista {{index}} reemplazada · {{count}} canciones en total",
+        "status.randomIdeaFilled": "Idea aleatoria completada: edítala u obtén recomendaciones.",
+        "card.emptyResults": "No se devolvieron canciones. Prueba con otro prompt.",
+        "card.trackLabel": "Pista {{index}}",
+        "card.addFavorite": "Añadir a guardadas",
+        "card.removeFavorite": "Quitar de guardadas",
+        "card.playPreview": "Reproducir preview de 30 segundos",
+        "card.pausePreview": "Pausar preview",
+        "card.loadingPreviewAria": "Cargando preview",
+        "card.playPreviewTitle": "Reproducir preview",
+        "card.redo": "Rehacer",
+        "card.moreLikeThis": "Más como esta",
+        "card.redoAria": "Reemplazar la pista {{index}} por otra diferente para el mismo prompt",
+        "card.moreLikeAria": "Reemplazar la playlist con canciones similares a la pista {{index}}, incluyendo esta canción",
+        "instruction.recommendSpanish": "Provide the song descriptions and persona name in Spanish.",
+      },
+    };
+
+    function t(key, vars = {}) {
+      const dict = translations[currentLanguage] || translations.en;
+      const fallback = translations.en[key] || key;
+      const template = dict[key] || fallback;
+      return String(template).replace(/\{\{(\w+)\}\}/g, (_, name) => String(vars[name] ?? ""));
+    }
+
+    function switchLanguage(lang) {
+      const next = lang === "es" ? "es" : "en";
+      currentLanguage = next;
+      localStorage.setItem(LANGUAGE_STORAGE_KEY, next);
+      document.documentElement.lang = next;
+      document.querySelectorAll("[data-i18n]").forEach((el) => {
+        const key = el.getAttribute("data-i18n");
+        if (!key) return;
+        const value = t(key);
+        if (value.includes("<")) {
+          el.innerHTML = value;
+        } else {
+          el.textContent = value;
+        }
+      });
+      document.querySelectorAll("[data-i18n-placeholder]").forEach((el) => {
+        const key = el.getAttribute("data-i18n-placeholder");
+        if (key) {
+          el.setAttribute("placeholder", t(key));
+        }
+      });
+      document.querySelectorAll("[data-i18n-aria-label]").forEach((el) => {
+        const key = el.getAttribute("data-i18n-aria-label");
+        if (key) {
+          el.setAttribute("aria-label", t(key));
+        }
+      });
+      document.querySelectorAll("[data-i18n-title]").forEach((el) => {
+        const key = el.getAttribute("data-i18n-title");
+        if (key) {
+          el.setAttribute("title", t(key));
+        }
+      });
+      const langEnBtn = document.getElementById("langEn");
+      const langEsBtn = document.getElementById("langEs");
+      if (langEnBtn) langEnBtn.classList.toggle("is-active", next === "en");
+      if (langEsBtn) langEsBtn.classList.toggle("is-active", next === "es");
+      if (currentSongs.length) {
+        renderCards(currentSongs);
+        translateCurrentCardDescriptions();
+      }
+      updateHeartButtons();
+      updatePlayButtons();
+      updatePlaylistBar();
+    }
+
+    let descriptionTranslateRequestId = 0;
+
+    async function translateCurrentCardDescriptions() {
+      if (formBusy || !currentSongs.length) return;
+      const sourceDescriptions = currentSongs.map((s) => String(s.why || ""));
+      if (!sourceDescriptions.some((txt) => txt.trim())) return;
+      const requestId = ++descriptionTranslateRequestId;
+      const targetLang = currentLanguage;
+      try {
+        const res = await fetch("/api/translate-descriptions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            descriptions: sourceDescriptions,
+            target_lang: targetLang,
+          }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          const detail = data.detail;
+          const msg =
+            typeof detail === "string"
+              ? detail
+              : Array.isArray(detail)
+                ? detail.map((d) => d.msg || d).join(" ")
+                : res.statusText || "Request failed";
+          throw new Error(msg);
+        }
+        if (requestId !== descriptionTranslateRequestId || targetLang !== currentLanguage) {
+          return;
+        }
+        const translated = Array.isArray(data.descriptions) ? data.descriptions : [];
+        if (translated.length !== currentSongs.length) {
+          return;
+        }
+        currentSongs = currentSongs.map((song, i) => ({
+          ...song,
+          why: String(translated[i] ?? song.why ?? ""),
+        }));
+        renderCards(currentSongs);
+      } catch (e) {
+        showStatus(e.message || t("status.genericError"), { error: true });
+      }
+    }
+
     let lastRequestPrompt = "";
     const FAVORITES_STORAGE_KEY = "songRecommenderFavorites";
     const PLAYLISTS_STORAGE_KEY = "songRecommenderSavedPlaylists";
@@ -728,7 +1017,7 @@
       const next = [entry, ...existing].slice(0, MAX_SAVED_PLAYLISTS);
       persistSavedPlaylists(next);
       updateSavedPlaylistsNavCount();
-      showStatus(`Saved "${nameStored}" (${currentSongs.length} tracks). Open Saved to view or remove.`);
+      showStatus(t("status.savedPlaylist", { name: nameStored, count: currentSongs.length }));
     }
 
     function isFavorite(song) {
@@ -776,7 +1065,7 @@
         const on = isFavorite(song);
         btn.classList.toggle("is-favorited", on);
         btn.setAttribute("aria-pressed", on ? "true" : "false");
-        btn.setAttribute("aria-label", on ? "Remove from favorites" : "Add to favorites");
+        btn.setAttribute("aria-label", on ? t("card.removeFavorite") : t("card.addFavorite"));
       });
     }
 
@@ -788,14 +1077,14 @@
       const i = favorites.findIndex((f) => favoriteKey(f) === k);
       if (i >= 0) {
         favorites.splice(i, 1);
-        showStatus(`Removed from Saved: ${song.title || "track"} — ${song.artist || ""}`.trim());
+        showStatus(t("status.removedFavorite", { song: `${song.title || "track"} — ${song.artist || ""}`.trim() }));
       } else {
         favorites.push({
           title: song.title,
           artist: song.artist,
           why: song.why || "",
         });
-        showStatus(`Saved: ${song.title || "track"} — ${song.artist || ""}`.trim());
+        showStatus(t("status.savedFavorite", { song: `${song.title || "track"} — ${song.artist || ""}`.trim() }));
       }
       persistFavorites();
       updateFavoritesNavCount();
@@ -833,7 +1122,7 @@
         }
         playlistMode = false;
         playingIndex = null;
-        showStatus("Playlist finished.");
+        showStatus(t("status.playlistFinished"));
         updatePlayButtons();
         updatePlaylistBar();
         return;
@@ -872,11 +1161,11 @@
         const msg =
           typeof data.detail === "string"
             ? data.detail
-            : "Preview not available.";
+            : t("status.previewUnavailable");
         throw new Error(msg);
       }
       url = data.preview_url;
-      if (!url) throw new Error("Preview not available.");
+      if (!url) throw new Error(t("status.previewUnavailable"));
       previewUrlCache.set(key, url);
       return url;
     }
@@ -898,11 +1187,11 @@
         playLoadingIndex = null;
         updatePlayButtons();
         if (fromPlaylist && index + 1 < currentSongs.length) {
-          showStatus(`Skipping track ${index + 1} (no preview)…`);
+          showStatus(t("status.skippingTrack", { index: index + 1 }));
           await playTrackAt(index + 1, { fromPlaylist: true });
           return;
         }
-        showStatus(e.message || "Preview not available.");
+        showStatus(e.message || t("status.previewUnavailable"));
         updatePlaylistBar();
         return;
       }
@@ -915,7 +1204,7 @@
         statusToastEl && statusToastEl.classList.remove("error");
       } catch (_) {
         playingIndex = null;
-        showStatus("Could not play audio in this browser.", { error: true, sticky: true });
+        showStatus(t("status.audioFail"), { error: true, sticky: true });
       }
       updatePlayButtons();
       updatePlaylistBar();
@@ -929,7 +1218,7 @@
           btn.textContent = "⏳";
           btn.disabled = true;
           btn.setAttribute("aria-busy", "true");
-          btn.setAttribute("aria-label", "Loading preview");
+          btn.setAttribute("aria-label", t("card.loadingPreviewAria"));
           btn.removeAttribute("title");
           return;
         }
@@ -937,8 +1226,8 @@
         btn.disabled = formBusy;
         const playing = playingIndex === idx && !audioPlayer.paused;
         btn.textContent = playing ? "⏸" : "▶";
-        btn.setAttribute("aria-label", playing ? "Pause preview" : "Play 30-second preview");
-        btn.setAttribute("title", playing ? "Pause preview" : "Play 30-second preview");
+        btn.setAttribute("aria-label", playing ? t("card.pausePreview") : t("card.playPreview"));
+        btn.setAttribute("title", playing ? t("card.pausePreview") : t("card.playPreview"));
         btn.setAttribute("aria-pressed", playing ? "true" : "false");
       });
       highlightPlayingCard();
@@ -961,11 +1250,11 @@
       bar.classList.remove("hidden");
 
       if (playlistMode && playLoadingIndex !== null) {
-        now.textContent = "Loading preview…";
+        now.textContent = t("status.loadingPreview");
       } else if (playlistMode && playingIndex !== null) {
-        now.textContent = `Playlist: track ${playingIndex + 1} of ${currentSongs.length} (~30s previews)`;
+        now.textContent = t("status.playlistTrack", { index: playingIndex + 1, total: currentSongs.length });
       } else {
-        now.textContent = `${currentSongs.length} tracks — press ▶ to preview the entire playlist`;
+        now.textContent = t("status.playlistReady", { count: currentSongs.length });
       }
 
       btnPlayAll.disabled = formBusy;
@@ -1011,7 +1300,7 @@
     async function exportCurrentToYouTube() {
       if (formBusy || !currentSongs.length) return;
       const btn = document.getElementById("exportYoutubeBtn");
-      setUiBusy(true, "Exporting to YouTube…");
+      setUiBusy(true, t("status.exportingYouTube"));
       try {
         const nameBase = String(promptEl.value || "").trim();
         const name = nameBase ? `Song Recommender — ${nameBase.slice(0, 60)}` : "Song Recommender playlist";
@@ -1026,7 +1315,7 @@
         });
         const data = await r.json().catch(() => ({}));
         if (!r.ok) {
-          statusEl.textContent = (data && data.detail) ? String(data.detail) : "Export failed.";
+          statusEl.textContent = (data && data.detail) ? String(data.detail) : t("status.exportFailed");
           statusEl.classList.add("error");
           if (r.status === 401) {
             setTimeout(() => {
@@ -1035,12 +1324,12 @@
           }
           return;
         }
-        statusEl.textContent = `Created YouTube playlist (${data.addedCount || 0} added). Opening…`;
+        statusEl.textContent = t("status.createdYouTube", { count: data.addedCount || 0 });
         if (data.playlistUrl) {
           window.open(String(data.playlistUrl), "_blank", "noopener,noreferrer");
         }
       } catch (e) {
-        statusEl.textContent = `Export failed: ${e}`;
+        statusEl.textContent = t("status.exportFailedWithError", { error: e });
         statusEl.classList.add("error");
       } finally {
         setUiBusy(false);
@@ -1195,7 +1484,7 @@
       }));
       gridEl.innerHTML = "";
       if (!currentSongs.length) {
-        gridEl.innerHTML = '<div class="empty">No songs returned. Try a different prompt.</div>';
+        gridEl.innerHTML = `<div class="empty">${t("card.emptyResults")}</div>`;
         updatePlaylistBar();
         return;
       }
@@ -1204,18 +1493,18 @@
         article.className = "card";
         article.innerHTML = `
           <div class="card-header-row">
-            <span class="card-num">Track ${i + 1}</span>
-            <button type="button" class="btn-heart" data-track-index="${i}" aria-label="Add to favorites" aria-pressed="false">♥</button>
+            <span class="card-num">${t("card.trackLabel", { index: i + 1 })}</span>
+            <button type="button" class="btn-heart" data-track-index="${i}" aria-label="${t("card.addFavorite")}" aria-pressed="false">♥</button>
           </div>
           <h2 class="card-title"></h2>
           <p class="card-artist"></p>
           <p class="card-why"></p>
           <div class="card-actions">
             <div class="card-actions-row">
-              <button type="button" class="btn-play" data-track-index="${i}" aria-label="Play 30-second preview" title="Play preview">▶</button>
-              <button type="button" class="btn-secondary btn-redo">Redo</button>
+              <button type="button" class="btn-play" data-track-index="${i}" aria-label="${t("card.playPreview")}" title="${t("card.playPreviewTitle")}">▶</button>
+              <button type="button" class="btn-secondary btn-redo">${t("card.redo")}</button>
             </div>
-            <button type="button" class="btn-secondary btn-more-like">More like this</button>
+            <button type="button" class="btn-secondary btn-more-like">${t("card.moreLikeThis")}</button>
           </div>
         `;
         article.querySelector(".card-title").textContent = song.title || "—";
@@ -1226,13 +1515,13 @@
         const redoBtn = article.querySelector(".btn-redo");
         redoBtn.setAttribute(
           "aria-label",
-          `Replace track ${i + 1} with a different song for the same prompt`,
+          t("card.redoAria", { index: i + 1 }),
         );
         redoBtn.addEventListener("click", () => redoTrack(i));
         const moreLikeBtn = article.querySelector(".btn-more-like");
         moreLikeBtn.setAttribute(
           "aria-label",
-          `Replace the playlist with tracks similar to track ${i + 1}, including this song`,
+          t("card.moreLikeAria", { index: i + 1 }),
         );
         moreLikeBtn.addEventListener("click", () => moreLikeThis(i));
         const heartBtn = article.querySelector(".btn-heart");
@@ -1246,15 +1535,18 @@
     async function fetchRecommendations() {
       const prompt = promptEl.value.trim();
       if (!prompt) {
-        showError("Enter what you want to hear.");
+        showError(t("status.emptyPrompt"));
         return;
       }
 
       lastRequestPrompt = prompt;
       stopPlayback();
-      setUiBusy(true, "Fetching recommendations…");
+      setUiBusy(true, t("status.fetchingRecommendations"));
       try {
         const body = { prompt };
+        if (currentLanguage === "es") {
+          body.prompt = `${prompt}\n\n${t("instruction.recommendSpanish")}`;
+        }
         const favs = favoritesForApi();
         if (favs.length) {
           body.favorites = favs;
@@ -1276,15 +1568,15 @@
           throw new Error(msg);
         }
         renderCards(data.songs || []);
-        let msg = `Showing ${(data.songs || []).length} tracks`;
+        let msg = t("status.showingTracks", { count: (data.songs || []).length });
         if (favs.length) {
-          msg += " · used your favorites as taste context";
+          msg += t("status.usedFavoritesContext");
         }
         statusEl.textContent = msg;
         statusEl.classList.remove("error");
         scrollResultsIntoView();
       } catch (e) {
-        showError(e.message || "Something went wrong.");
+        showError(e.message || t("status.genericError"));
         currentSongs = [];
         gridEl.innerHTML = "";
       } finally {
@@ -1298,7 +1590,7 @@
       }
       const seed = currentSongs[index];
       stopPlayback();
-      setUiBusy(true, "Finding similar tracks…");
+      setUiBusy(true, t("status.findingSimilar"));
       try {
         const body = {
           seed: { title: seed.title, artist: seed.artist },
@@ -1330,18 +1622,18 @@
         }
         const songs = data.songs || [];
         if (songs.length !== 20) {
-          throw new Error("Expected 20 tracks from similar-songs request.");
+          throw new Error(t("status.expectedTwenty"));
         }
         renderCards(songs);
-        const ref = `${seed.title} — ${seed.artist}`.trim() || "your pick";
-        let msg = `20 tracks similar to ${ref} (includes your selected track)`;
+        const ref = `${seed.title} — ${seed.artist}`.trim() || t("status.yourPick");
+        let msg = t("status.similarTo", { ref });
         if (favs.length) {
-          msg += " · used your favorites as taste context";
+          msg += t("status.usedFavoritesContext");
         }
         statusEl.textContent = msg;
         statusEl.classList.remove("error");
       } catch (e) {
-        showError(e.message || "Something went wrong.");
+        showError(e.message || t("status.genericError"));
       } finally {
         setUiBusy(false);
       }
@@ -1350,7 +1642,7 @@
     async function redoTrack(index) {
       const prompt = promptEl.value.trim() || lastRequestPrompt;
       if (!prompt) {
-        showError("Enter a description or get recommendations first — nothing to base a redo on yet.");
+        showError(t("status.redoNeedsBase"));
         return;
       }
       if (!currentSongs.length || index < 0 || index >= currentSongs.length) {
@@ -1364,7 +1656,7 @@
         stopPlayback();
       }
 
-      setUiBusy(true, "Finding a different track…");
+      setUiBusy(true, t("status.findingDifferentTrack"));
       try {
         const redoBody = {
           prompt,
@@ -1393,7 +1685,7 @@
         }
         const song = data.song;
         if (!song) {
-          throw new Error("No replacement song returned.");
+          throw new Error(t("status.noReplacement"));
         }
         currentSongs[index] = {
           title: song.title || "",
@@ -1401,10 +1693,10 @@
           why: song.why || "",
         };
         renderCards(currentSongs);
-        statusEl.textContent = `Replaced track ${index + 1} · ${currentSongs.length} tracks total`;
+        statusEl.textContent = t("status.replacedTrack", { index: index + 1, count: currentSongs.length });
         statusEl.classList.remove("error");
       } catch (e) {
-        showError(e.message || "Something went wrong.");
+        showError(e.message || t("status.genericError"));
       } finally {
         setUiBusy(false);
       }
@@ -1413,7 +1705,7 @@
     randomBtn.addEventListener("click", () => {
       promptEl.value = randomPlaylistDescription();
       promptEl.focus();
-      statusEl.textContent = "Random idea filled in — edit it or get recommendations.";
+      statusEl.textContent = t("status.randomIdeaFilled");
       statusEl.classList.remove("error");
     });
 
@@ -1431,6 +1723,10 @@
     document.getElementById("playlistStop").addEventListener("click", stopPlayback);
     document.getElementById("savePlaylistBtn").addEventListener("click", saveCurrentPlaylist);
     document.getElementById("exportYoutubeBtn").addEventListener("click", exportCurrentToYouTube);
+    document.getElementById("langEn").addEventListener("click", () => switchLanguage("en"));
+    document.getElementById("langEs").addEventListener("click", () => switchLanguage("es"));
+    const savedLanguage = localStorage.getItem(LANGUAGE_STORAGE_KEY);
+    switchLanguage(savedLanguage === "es" ? "es" : "en");
   </script>
 </body>
 </html>

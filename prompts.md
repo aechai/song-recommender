@@ -292,3 +292,32 @@ Implement and/or investigate the following enhancements for the Song Recommender
 #### Update README (implement docs)
 - **Docs**: Update README with all existing features; ensure consistency and accuracy across the entire file.
 
+---
+
+## Prompt 9 — EN/ES localization + stable song identity on toggle
+
+### Prompt
+Add full English/Spanish localization across the frontend while preserving recommendation identity during language switches.
+
+Requirements:
+
+- Add an **EN/ES** language toggle on all app pages (`index.html`, `personality-quiz.html`, `favorites.html`, `playlists.html`, `account.html`).
+- Add `data-i18n`-style translation keys for titles, labels, button text, placeholders, tooltips/ARIA labels, quiz text, and status copy.
+- Persist language preference in `localStorage` and restore it on page load.
+- For quiz pages, localize the quiz option labels and ensure the quiz payload can be built from language-appropriate answer text.
+- Crucial behavior: switching language must **not** regenerate a different recommendation set.
+  - Keep existing song cards (title/artist/order) stable.
+  - Translate only the existing `why` description text in place.
+- Implement a backend endpoint to translate an array of existing descriptions:
+  - `POST /api/translate-descriptions`
+  - Input: `{ descriptions: string[], target_lang: "en" | "es" }`
+  - Output: `{ descriptions: string[] }` with same length/order.
+- Update docs to include the localization behavior and translation endpoint.
+
+### Effects
+- **Frontend i18n coverage**: Core UI copy and quiz text/options are language-switchable and persistent.
+- **Stable recommendations**: EN/ES toggle no longer changes which songs are shown.
+- **Description-only translation**: Existing card `why` lines are translated in place through a dedicated API.
+- **Backend extension**: `main.py` includes a translation endpoint with JSON-only response constraints and length/order validation.
+- **Documentation**: README and prompts history reflect the multilingual feature and the new API contract.
+

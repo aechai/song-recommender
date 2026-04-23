@@ -277,6 +277,17 @@ class SimilarFromTrackRequest(BaseModel):
     )
 
 
+class TranslateDescriptionsRequest(BaseModel):
+    descriptions: list[str] = Field(
+        default_factory=list,
+        description="Current song-card description lines to translate in place.",
+    )
+    target_lang: str = Field(
+        ...,
+        description='Target language code: "en" or "es".',
+    )
+
+
 class YouTubeTrack(BaseModel):
     title: str = Field(default="", max_length=220)
     artist: str = Field(default="", max_length=220)
@@ -746,6 +757,65 @@ async def recommend(body: RecommendRequest) -> dict:
             detail=f"Model returned {len(normalized)} songs; expected {n}. Try again.",
         )
     return {"songs": normalized[:n]}
+
+
+@app.post("/api/translate-descriptions")
+async def translate_descriptions(body: TranslateDescriptionsRequest) -> dict:
+    target = body.target_lang.strip().lower()
+    if target not in {"en", "es"}:
+        raise HTTPException(status_code=400, detail='target_lang must be "en" or "es".')
+
+    source = [str(x or "") for x in body.descriptions]
+    if not source:
+        return {"descriptions": []}
+    if len(source) > 40:
+        raise HTTPException(status_code=400, detail="Too many descriptions. Max 40.")
+
+    client = get_client()
+    language_name = "Spanish" if target == "es" else "English"
+    system = (
+        "You are a strict translator. Reply with ONLY valid JSON, no markdown or explanation. "
+        f"Translate each input string into {language_name}. Keep meaning, tone, and punctuation natural. "
+        "Preserve the original array order and return the same array length."
+    )
+    user = (
+        f"Translate this JSON array to {language_name}. Keep empty strings unchanged.\n\n"
+        f"{json.dumps(source, ensure_ascii=False)}"
+    )
+
+    parse_errors: list[str] = []
+    translated: list[str] | None = None
+    for attempt in range(3):
+        messages = [
+            {"role": "system", "content": system},
+            {"role": "user", "content": user},
+        ]
+        if attempt > 0:
+            messages.append(
+                {
+                    "role": "user",
+                    "content": "Your previous reply was invalid. Reply again with ONLY a valid JSON array of strings with the exact same length.",
+                }
+            )
+        content = request_recommendations(client, messages, max_tokens=2048)
+        try:
+            data = json.loads(_strip_code_fence(content))
+            if not isinstance(data, list):
+                raise ValueError("Response must be a JSON array")
+            if len(data) != len(source):
+                raise ValueError("Translated array length mismatch")
+            translated = [str(x or "") for x in data]
+            break
+        except (json.JSONDecodeError, ValueError) as e:
+            parse_errors.append(str(e))
+
+    if translated is None:
+        raise HTTPException(
+            status_code=502,
+            detail="Could not parse translation output as JSON after retries: "
+            + " | ".join(parse_errors),
+        )
+    return {"descriptions": translated}
 
 
 @app.post("/api/recommend/similar")

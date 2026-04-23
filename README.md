@@ -18,6 +18,8 @@ A small **FastAPI** app with a static frontend that suggests **20 songs at a tim
 | **Saved playlists** | **Save playlist** on the home page stores the current playlist; names are auto **`Playlist #1`**, **`Playlist #2`**, … (next number = max existing `Playlist #n` + 1). Up to **40** playlists kept (newest first). |
 | **Saved page tabs** | On **`/favorites`**, switch between **Saved** and **Saved playlists** without leaving the page. |
 | **YouTube export** | Link a Google account on **`/account`**, then export the current playlist, any saved playlist, or all saved tracks to a YouTube playlist. |
+| **EN/ES localization** | All app pages include an **EN/ES** toggle. UI labels, placeholders, quiz question/options, and status copy switch language and persist via `localStorage` (`songRecommenderLanguage`). |
+| **In-place description translation** | Switching EN/ES does **not** regenerate recommendations. Existing card **descriptions (`why`)** are translated in place via **`POST /api/translate-descriptions`**, keeping the same songs/order. |
 
 
 ---
@@ -160,6 +162,30 @@ Query: `title`, `artist` (at least one required).
 
 Response: `{ "preview_url": "<https://…>" }` or **404** if no preview is found.
 
+### `POST /api/translate-descriptions`
+
+Translate existing card description lines without changing song identities/order.
+
+Body:
+
+```json
+{
+  "descriptions": ["Short why #1", "Short why #2"],
+  "target_lang": "es"
+}
+```
+
+- `target_lang` must be `"en"` or `"es"`.
+- The backend returns the same number of strings, same order.
+
+Response:
+
+```json
+{
+  "descriptions": ["Motivo breve #1", "Motivo breve #2"]
+}
+```
+
 ### YouTube export (Google OAuth)
 
 This app can optionally link a Google account and export playlists to YouTube.
@@ -190,6 +216,7 @@ Notes:
 |-----|----------|
 | `songRecommenderFavorites` | Array of `{ title, artist, why? }` for hearted tracks. |
 | `songRecommenderSavedPlaylists` | Array of `{ id, name, savedAt, prompt?, tracks: [{ title, artist }] }`. |
+| `songRecommenderLanguage` | Current UI language (`"en"` or `"es"`). |
 
 **Clearing site data** removes Saved tracks and playlists.
 
@@ -225,5 +252,14 @@ Notes:
 
 - **`pytest`** is listed in `requirements.txt` for testing; there may be no tests in-repo yet — safe to ignore for a quick run.
 - Do **not** commit `.env`; it should stay in `.gitignore`.
+
+---
+
+## Add-on updates (latest)
+
+- **Stable song identity on language toggle:** Switching EN/ES no longer re-runs recommendation generation for existing cards. The app keeps the same track titles/artists/order and updates only translatable UI + description text.
+- **Description translation endpoint:** The backend now includes **`POST /api/translate-descriptions`** for translating existing `why` lines in place while preserving list length/order.
+- **Saved page parity:** The Saved tab (`/favorites`) now uses the same in-place description translation behavior as the main and quiz pages.
+- **Quiz payload localization:** Quiz option labels are localized, and quiz answer payload text can be language-aware when building the `Quiz Results:` prompt.
 
 ---

@@ -45,6 +45,11 @@
     header {
       margin-bottom: 2rem;
     }
+    .header-top { display: flex; justify-content: flex-end; margin-bottom: 0.9rem; }
+    .lang-toggle { display: inline-flex; gap: 0.25rem; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 999px; padding: 0.22rem; box-shadow: var(--shadow); }
+    .lang-btn { appearance: none; border: 0; background: transparent; color: var(--muted); font-size: 0.78rem; font-weight: 700; letter-spacing: 0.04em; padding: 0.32rem 0.65rem; border-radius: 999px; cursor: pointer; transition: background 0.15s, color 0.15s; }
+    .lang-btn:hover { color: var(--text); }
+    .lang-btn.is-active { color: #fff; background: linear-gradient(135deg, var(--accent), #5b8cff); box-shadow: 0 6px 16px rgba(124, 92, 255, 0.32); }
 
     .site-nav {
       display: flex;
@@ -278,35 +283,82 @@
 <body>
   <div class="wrap">
     <nav class="site-nav" aria-label="Site">
-      <a href="/" class="nav-link">Recommend songs</a>
-      <a href="/favorites" class="nav-link">Saved</a>
-      <a href="/personality-quiz" class="nav-link">Personality quiz</a>
-      <a href="/account" class="nav-link">Account</a>
+      <a href="/" class="nav-link" data-i18n="nav.recommend">Recommend songs</a>
+      <a href="/favorites" class="nav-link" data-i18n="nav.saved">Saved</a>
+      <a href="/personality-quiz" class="nav-link" data-i18n="nav.quiz">Personality quiz</a>
+      <a href="/account" class="nav-link" data-i18n="nav.account">Account</a>
     </nav>
 
     <header>
-      <h1>Saved playlists</h1>
-      <p class="sub">Playlists you saved from the recommender. Stored only in this browser on this device.</p>
+      <div class="header-top">
+        <div class="lang-toggle" role="group" aria-label="Language selector">
+          <button type="button" class="lang-btn is-active" id="langEn">EN</button>
+          <button type="button" class="lang-btn" id="langEs">ES</button>
+        </div>
+      </div>
+      <h1 data-i18n="header.title">Saved playlists</h1>
+      <p class="sub" data-i18n="header.sub">Playlists you saved from the recommender. Stored only in this browser on this device.</p>
     </header>
 
     <section class="panel" aria-label="Saved playlists">
       <div class="list-header">
-        <h2 class="list-title">Your playlists</h2>
+        <h2 class="list-title" data-i18n="list.title">Your playlists</h2>
         <span class="list-count" id="playlistListCount">0</span>
       </div>
-      <p class="empty" id="playlistsEmpty">No saved playlists yet. Get recommendations on the home page, then use Save playlist.</p>
+      <p class="empty" id="playlistsEmpty" data-i18n="list.empty">No saved playlists yet. Get recommendations on the home page, then use Save playlist.</p>
       <div class="saved-list" id="playlistsRoot"></div>
     </section>
   </div>
 
   <div class="toast" id="statusToast" role="status" aria-live="polite">
     <span class="toast-text" id="statusText"></span>
-    <button type="button" class="toast-close" id="statusToastClose" aria-label="Dismiss status">×</button>
+    <button type="button" class="toast-close" id="statusToastClose" aria-label="Dismiss status" data-i18n-aria-label="toast.dismiss">×</button>
   </div>
 
   <script>
     const FAVORITES_STORAGE_KEY = "songRecommenderFavorites";
     const PLAYLISTS_STORAGE_KEY = "songRecommenderSavedPlaylists";
+    const LANGUAGE_STORAGE_KEY = "songRecommenderLanguage";
+    let currentLanguage = "en";
+    const translations = {
+      en: {
+        "nav.recommend": "Recommend songs", "nav.saved": "Saved", "nav.quiz": "Personality quiz", "nav.account": "Account",
+        "header.title": "Saved playlists", "header.sub": "Playlists you saved from the recommender. Stored only in this browser on this device.",
+        "list.title": "Your playlists", "list.empty": "No saved playlists yet. Get recommendations on the home page, then use Save playlist.",
+        "toast.dismiss": "Dismiss status", "status.deleted": "Playlist deleted.", "status.exportFailed": "Export failed.", "status.createdYT": "Created YouTube playlist ({{count}} added). Opening…",
+        "status.noUrl": "Exported, but no playlist URL returned.", "status.exportFailedWithError": "Export failed: {{error}}", "meta.tracks": "{{count}} tracks", "meta.saved": " · saved {{when}}",
+        "btn.export": "Export to YouTube", "btn.delete": "Delete", "aria.export": "Export playlist {{name}} to YouTube", "aria.delete": "Delete playlist {{name}}", "prompt.request": "Request: {{prompt}}", "untitled": "Untitled",
+      },
+      es: {
+        "nav.recommend": "Recomendar canciones", "nav.saved": "Guardadas", "nav.quiz": "Quiz de personalidad", "nav.account": "Cuenta",
+        "header.title": "Playlists guardadas", "header.sub": "Playlists que guardaste del recomendador. Solo se almacenan en este navegador y este dispositivo.",
+        "list.title": "Tus playlists", "list.empty": "Aún no hay playlists guardadas. Obtén recomendaciones en la página principal y luego usa Guardar playlist.",
+        "toast.dismiss": "Cerrar estado", "status.deleted": "Playlist eliminada.", "status.exportFailed": "La exportación falló.", "status.createdYT": "Playlist de YouTube creada ({{count}} añadidas). Abriendo…",
+        "status.noUrl": "Exportada, pero no se recibió URL de playlist.", "status.exportFailedWithError": "La exportación falló: {{error}}", "meta.tracks": "{{count}} canciones", "meta.saved": " · guardada {{when}}",
+        "btn.export": "Exportar a YouTube", "btn.delete": "Eliminar", "aria.export": "Exportar playlist {{name}} a YouTube", "aria.delete": "Eliminar playlist {{name}}", "prompt.request": "Solicitud: {{prompt}}", "untitled": "Sin título",
+      },
+    };
+    function t(key, vars = {}) {
+      const dict = translations[currentLanguage] || translations.en;
+      const fallback = translations.en[key] || key;
+      const template = dict[key] || fallback;
+      return String(template).replace(/\{\{(\w+)\}\}/g, (_, n) => String(vars[n] ?? ""));
+    }
+    function switchLanguage(lang) {
+      currentLanguage = lang === "es" ? "es" : "en";
+      localStorage.setItem(LANGUAGE_STORAGE_KEY, currentLanguage);
+      document.documentElement.lang = currentLanguage;
+      document.querySelectorAll("[data-i18n]").forEach((el) => {
+        const key = el.getAttribute("data-i18n");
+        if (key) el.textContent = t(key);
+      });
+      document.querySelectorAll("[data-i18n-aria-label]").forEach((el) => {
+        const key = el.getAttribute("data-i18n-aria-label");
+        if (key) el.setAttribute("aria-label", t(key));
+      });
+      document.getElementById("langEn")?.classList.toggle("is-active", currentLanguage === "en");
+      document.getElementById("langEs")?.classList.toggle("is-active", currentLanguage === "es");
+    }
 
     const playlistsEmptyEl = document.getElementById("playlistsEmpty");
     const playlistsRootEl = document.getElementById("playlistsRoot");
@@ -406,12 +458,12 @@
       const rest = loadSavedPlaylists().filter((p) => p.id !== id);
       persistSavedPlaylists(rest);
       render();
-      showStatus("Playlist deleted.");
+      showStatus(t("status.deleted"));
     }
 
     function playlistTitleDisplay(name) {
       const s = String(name || "").trim();
-      if (!s) return { text: "Untitled", title: "" };
+      if (!s) return { text: t("untitled"), title: "" };
       if (s.length <= 32) return { text: s, title: "" };
       return { text: `${s.slice(0, 30)}…`, title: s };
     }
@@ -438,7 +490,7 @@
         const meta = document.createElement("p");
         meta.className = "saved-pl-meta";
         const when = formatSavedAt(pl.savedAt);
-        meta.textContent = `${pl.tracks.length} tracks${when ? ` · saved ${when}` : ""}`;
+        meta.textContent = `${t("meta.tracks", { count: pl.tracks.length })}${when ? t("meta.saved", { when }) : ""}`;
         left.appendChild(h3);
         left.appendChild(meta);
 
@@ -453,8 +505,8 @@
         exportBtn.className = "btn-delete";
         exportBtn.style.borderColor = "rgba(124, 92, 255, 0.35)";
         exportBtn.style.color = "var(--text)";
-        exportBtn.textContent = "Export to YouTube";
-        exportBtn.setAttribute("aria-label", `Export playlist ${pl.name} to YouTube`);
+        exportBtn.textContent = t("btn.export");
+        exportBtn.setAttribute("aria-label", t("aria.export", { name: pl.name }));
         exportBtn.addEventListener("click", async () => {
           exportBtn.disabled = true;
           try {
@@ -471,7 +523,7 @@
             });
             const data = await r.json().catch(() => ({}));
             if (!r.ok) {
-              const msg = (data && data.detail) ? String(data.detail) : "Export failed.";
+              const msg = (data && data.detail) ? String(data.detail) : t("status.exportFailed");
               showStatus(msg, { error: true, sticky: true });
               if (r.status === 401) {
                 window.location.href = "/account";
@@ -479,13 +531,13 @@
               return;
             }
             if (data.playlistUrl) {
-              showStatus(`Created YouTube playlist (${data.addedCount || 0} added). Opening…`);
+              showStatus(t("status.createdYT", { count: data.addedCount || 0 }));
               window.open(String(data.playlistUrl), "_blank", "noopener,noreferrer");
             } else {
-              showStatus("Exported, but no playlist URL returned.", { error: true, sticky: true });
+              showStatus(t("status.noUrl"), { error: true, sticky: true });
             }
           } catch (e) {
-            showStatus(`Export failed: ${e}`, { error: true, sticky: true });
+            showStatus(t("status.exportFailedWithError", { error: e }), { error: true, sticky: true });
           } finally {
             exportBtn.disabled = false;
           }
@@ -494,8 +546,8 @@
         const del = document.createElement("button");
         del.type = "button";
         del.className = "btn-delete";
-        del.textContent = "Delete";
-        del.setAttribute("aria-label", `Delete playlist ${pl.name}`);
+        del.textContent = t("btn.delete");
+        del.setAttribute("aria-label", t("aria.delete", { name: pl.name }));
         del.addEventListener("click", () => deletePlaylist(pl.id));
 
         actions.appendChild(exportBtn);
@@ -509,7 +561,7 @@
         const promptP = document.createElement("p");
         promptP.className = "saved-pl-prompt";
         if (prompt) {
-          promptP.textContent = `Request: ${prompt}`;
+          promptP.textContent = t("prompt.request", { prompt });
         } else {
           promptP.hidden = true;
         }
@@ -529,6 +581,10 @@
       });
     }
 
+    render();
+    document.getElementById("langEn").addEventListener("click", () => { switchLanguage("en"); render(); });
+    document.getElementById("langEs").addEventListener("click", () => { switchLanguage("es"); render(); });
+    switchLanguage(localStorage.getItem(LANGUAGE_STORAGE_KEY) === "es" ? "es" : "en");
     render();
 
     window.addEventListener("storage", (e) => {

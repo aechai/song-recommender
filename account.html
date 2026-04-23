@@ -41,6 +41,11 @@
     }
 
     header { margin-bottom: 2rem; }
+    .header-top { display: flex; justify-content: flex-end; margin-bottom: 0.9rem; }
+    .lang-toggle { display: inline-flex; gap: 0.25rem; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 999px; padding: 0.22rem; box-shadow: var(--shadow); }
+    .lang-btn { appearance: none; border: 0; background: transparent; color: var(--muted); font-size: 0.78rem; font-weight: 700; letter-spacing: 0.04em; padding: 0.32rem 0.65rem; border-radius: 999px; cursor: pointer; transition: background 0.15s, color 0.15s; }
+    .lang-btn:hover { color: var(--text); }
+    .lang-btn.is-active { color: #fff; background: linear-gradient(135deg, var(--accent), #5b8cff); box-shadow: 0 6px 16px rgba(124, 92, 255, 0.32); }
 
     .site-nav {
       display: flex;
@@ -178,25 +183,31 @@
 <body>
   <div class="wrap">
     <nav class="site-nav" aria-label="Site">
-      <a href="/" class="nav-link">Recommend songs</a>
-      <a href="/favorites" class="nav-link">Saved</a>
-      <a href="/personality-quiz" class="nav-link">Personality quiz</a>
-      <a href="/account" class="nav-link" aria-current="page">Account</a>
+      <a href="/" class="nav-link" data-i18n="nav.recommend">Recommend songs</a>
+      <a href="/favorites" class="nav-link" data-i18n="nav.saved">Saved</a>
+      <a href="/personality-quiz" class="nav-link" data-i18n="nav.quiz">Personality quiz</a>
+      <a href="/account" class="nav-link" aria-current="page" data-i18n="nav.account">Account</a>
     </nav>
 
     <header>
-      <h1>Account</h1>
-      <p class="sub">Link your Google account to export playlists to YouTube.</p>
+      <div class="header-top">
+        <div class="lang-toggle" role="group" aria-label="Language selector">
+          <button type="button" class="lang-btn is-active" id="langEn" data-lang="en">EN</button>
+          <button type="button" class="lang-btn" id="langEs" data-lang="es">ES</button>
+        </div>
+      </div>
+      <h1 data-i18n="header.title">Account</h1>
+      <p class="sub" data-i18n="header.sub">Link your Google account to export playlists to YouTube.</p>
     </header>
 
     <section class="panel" aria-label="Google account linking">
-      <p class="status" id="linkStatus" role="status" aria-live="polite">Checking link status…</p>
+      <p class="status" id="linkStatus" role="status" aria-live="polite" data-i18n="status.checking">Checking link status…</p>
       <div class="row">
-        <button type="button" class="btn" id="linkBtn">Link Google (YouTube)</button>
-        <button type="button" class="btn btn-danger" id="unlinkBtn" hidden>Unlink</button>
-        <button type="button" class="btn btn-secondary" id="refreshBtn">Refresh</button>
+        <button type="button" class="btn" id="linkBtn" data-i18n="buttons.link">Link Google (YouTube)</button>
+        <button type="button" class="btn btn-danger" id="unlinkBtn" hidden data-i18n="buttons.unlink">Unlink</button>
+        <button type="button" class="btn btn-secondary" id="refreshBtn" data-i18n="buttons.refresh">Refresh</button>
       </div>
-      <p class="note">
+      <p class="note" data-i18n="note.session">
         Linking is stored only in this server process (in-memory). Restarting the server will require linking again.
       </p>
     </section>
@@ -205,6 +216,46 @@
   <script>
     const FAVORITES_STORAGE_KEY = "songRecommenderFavorites";
     const PLAYLISTS_STORAGE_KEY = "songRecommenderSavedPlaylists";
+    const LANGUAGE_STORAGE_KEY = "songRecommenderLanguage";
+    let currentLanguage = "en";
+    const translations = {
+      en: {
+        "nav.recommend": "Recommend songs", "nav.saved": "Saved", "nav.quiz": "Personality quiz", "nav.account": "Account",
+        "header.title": "Account", "header.sub": "Link your Google account to export playlists to YouTube.",
+        "status.checking": "Checking link status…", "status.couldNotLoad": "Could not load status.", "status.linked": "Status: linked ✔", "status.notLinked": "Status: not linked",
+        "status.networkError": "Network error: {{error}}", "status.unlinking": "Unlinking…", "status.unlinkFailed": "Unlink failed.",
+        "buttons.link": "Link Google (YouTube)", "buttons.unlink": "Unlink", "buttons.refresh": "Refresh",
+        "note.session": "Linking is stored only in this server process (in-memory). Restarting the server will require linking again.",
+        "confirm.unlink": "Unlink your Google account from this session?",
+      },
+      es: {
+        "nav.recommend": "Recomendar canciones", "nav.saved": "Guardadas", "nav.quiz": "Quiz de personalidad", "nav.account": "Cuenta",
+        "header.title": "Cuenta", "header.sub": "Vincula tu cuenta de Google para exportar playlists a YouTube.",
+        "status.checking": "Comprobando estado de vinculación…", "status.couldNotLoad": "No se pudo cargar el estado.", "status.linked": "Estado: vinculada ✔", "status.notLinked": "Estado: no vinculada",
+        "status.networkError": "Error de red: {{error}}", "status.unlinking": "Desvinculando…", "status.unlinkFailed": "La desvinculación falló.",
+        "buttons.link": "Vincular Google (YouTube)", "buttons.unlink": "Desvincular", "buttons.refresh": "Actualizar",
+        "note.session": "La vinculación se guarda solo en este proceso del servidor (en memoria). Si reinicias el servidor, tendrás que vincular de nuevo.",
+        "confirm.unlink": "¿Desvincular tu cuenta de Google de esta sesión?",
+      },
+    };
+    function t(key, vars = {}) {
+      const dict = translations[currentLanguage] || translations.en;
+      const fallback = translations.en[key] || key;
+      const template = dict[key] || fallback;
+      return String(template).replace(/\{\{(\w+)\}\}/g, (_, n) => String(vars[n] ?? ""));
+    }
+    function switchLanguage(lang) {
+      const next = lang === "es" ? "es" : "en";
+      currentLanguage = next;
+      localStorage.setItem(LANGUAGE_STORAGE_KEY, next);
+      document.documentElement.lang = next;
+      document.querySelectorAll("[data-i18n]").forEach((el) => {
+        const key = el.getAttribute("data-i18n");
+        if (key) el.textContent = t(key);
+      });
+      document.getElementById("langEn")?.classList.toggle("is-active", next === "en");
+      document.getElementById("langEs")?.classList.toggle("is-active", next === "es");
+    }
 
     function loadFavoritesLength() {
       try {
@@ -253,24 +304,24 @@
     }
 
     async function refreshStatus() {
-      setStatus("Checking link status…");
+      setStatus(t("status.checking"));
       try {
         const r = await fetch("/api/account/status", { credentials: "include" });
         const data = await r.json().catch(() => ({}));
         if (!r.ok) {
-          setStatus(data && data.detail ? String(data.detail) : "Could not load status.", { error: true });
+          setStatus(data && data.detail ? String(data.detail) : t("status.couldNotLoad"), { error: true });
           unlinkBtn.hidden = true;
           return;
         }
         if (data && data.linked) {
-          setStatus("Status: linked ✔");
+          setStatus(t("status.linked"));
           unlinkBtn.hidden = false;
         } else {
-          setStatus("Status: not linked");
+          setStatus(t("status.notLinked"));
           unlinkBtn.hidden = true;
         }
       } catch (e) {
-        setStatus(`Network error: ${e}`, { error: true });
+        setStatus(t("status.networkError", { error: e }), { error: true });
         unlinkBtn.hidden = true;
       }
     }
@@ -280,8 +331,8 @@
     });
 
     unlinkBtn.addEventListener("click", async () => {
-      if (!confirm("Unlink your Google account from this session?")) return;
-      setStatus("Unlinking…");
+      if (!confirm(t("confirm.unlink"))) return;
+      setStatus(t("status.unlinking"));
       try {
         const r = await fetch("/auth/google/unlink", {
           method: "POST",
@@ -291,16 +342,19 @@
         });
         const data = await r.json().catch(() => ({}));
         if (!r.ok) {
-          setStatus(data && data.detail ? String(data.detail) : "Unlink failed.", { error: true });
+          setStatus(data && data.detail ? String(data.detail) : t("status.unlinkFailed"), { error: true });
           return;
         }
         await refreshStatus();
       } catch (e) {
-        setStatus(`Network error: ${e}`, { error: true });
+        setStatus(t("status.networkError", { error: e }), { error: true });
       }
     });
 
     refreshBtn.addEventListener("click", refreshStatus);
+    document.getElementById("langEn").addEventListener("click", () => switchLanguage("en"));
+    document.getElementById("langEs").addEventListener("click", () => switchLanguage("es"));
+    switchLanguage(localStorage.getItem(LANGUAGE_STORAGE_KEY) === "es" ? "es" : "en");
     refreshStatus();
   </script>
 </body>

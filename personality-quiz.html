@@ -45,6 +45,11 @@
     header {
       margin-bottom: 2rem;
     }
+    .header-top { display: flex; justify-content: flex-end; margin-bottom: 0.9rem; }
+    .lang-toggle { display: inline-flex; gap: 0.25rem; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 999px; padding: 0.22rem; box-shadow: var(--shadow); }
+    .lang-btn { appearance: none; border: 0; background: transparent; color: var(--muted); font-size: 0.78rem; font-weight: 700; letter-spacing: 0.04em; padding: 0.32rem 0.65rem; border-radius: 999px; cursor: pointer; transition: background 0.15s, color 0.15s; }
+    .lang-btn:hover { color: var(--text); }
+    .lang-btn.is-active { color: #fff; background: linear-gradient(135deg, var(--accent), #5b8cff); box-shadow: 0 6px 16px rgba(124, 92, 255, 0.32); }
 
     .site-nav {
       display: flex;
@@ -592,115 +597,121 @@
 <body>
   <div class="wrap">
     <nav class="site-nav" aria-label="Site">
-      <a href="/" class="nav-link">Recommend songs</a>
-      <a href="/favorites" class="nav-link">Saved</a>
-      <a href="/personality-quiz" class="nav-link" aria-current="page">Personality quiz</a>
-      <a href="/account" class="nav-link">Account</a>
+      <a href="/" class="nav-link" data-i18n="nav.recommend">Recommend songs</a>
+      <a href="/favorites" class="nav-link" data-i18n="nav.saved">Saved</a>
+      <a href="/personality-quiz" class="nav-link" aria-current="page" data-i18n="nav.quiz">Personality quiz</a>
+      <a href="/account" class="nav-link" data-i18n="nav.account">Account</a>
     </nav>
 
     <header>
-      <h1>Musical Personality Quiz</h1>
-      <p class="sub">Answer 5 questions, then <strong>Find My Persona</strong> for a named musical persona and <strong>20</strong> song picks with a short &ldquo;why&rdquo; each. <a href="/" style="color: var(--accent); font-weight: 600"><br>← Back to Describe</a></p>
+      <div class="header-top">
+        <div class="lang-toggle" role="group" aria-label="Language selector">
+          <button type="button" class="lang-btn is-active" id="langEn">EN</button>
+          <button type="button" class="lang-btn" id="langEs">ES</button>
+        </div>
+      </div>
+      <h1 data-i18n="header.title">Musical Personality Quiz</h1>
+      <p class="sub"><span data-i18n="header.subA">Answer 5 questions, then <strong>Find My Persona</strong> for a named musical persona and <strong>20</strong> song picks with a short &ldquo;why&rdquo; each.</span> <a href="/" style="color: var(--accent); font-weight: 600" data-i18n="header.back"><br>← Back to Describe</a></p>
     </header>
 
     <div class="toast" id="statusToast" role="status" aria-live="polite">
       <span class="toast-text" id="statusText"></span>
-      <button type="button" class="toast-close" id="statusToastClose" aria-label="Dismiss status">×</button>
+      <button type="button" class="toast-close" id="statusToastClose" aria-label="Dismiss status" data-i18n-aria-label="toast.dismiss">×</button>
     </div>
 
     <section id="panel-personality" class="panel" aria-label="Musical Personality Quiz">
-        <h2 class="personality-quiz-title" id="heading-personality" style="scroll-margin-top: 0.5rem">Musical Personality Quiz</h2>
-        <p class="sub" style="margin: 0 0 1.25rem; max-width: none">
+        <h2 class="personality-quiz-title" id="heading-personality" style="scroll-margin-top: 0.5rem" data-i18n="quiz.title">Musical Personality Quiz</h2>
+        <p class="sub" style="margin: 0 0 1.25rem; max-width: none" data-i18n="quiz.sub">
           Answer all 5 questions, then we will name your <strong>musical persona</strong> and suggest <strong>20 songs</strong> with a short &ldquo;why&rdquo; each.
         </p>
 
         <div class="quiz-block">
-          <label class="quiz-q" for="quizEnergy">Energy level</label>
+          <label class="quiz-q" for="quizEnergy" data-i18n="q.energy">Energy level</label>
           <select class="quiz-select" id="quizEnergy" name="quizEnergy" autocomplete="off">
-            <option value="" disabled selected>Choose…</option>
-            <option value="I prefer low-key, soft, and intimate energy">Low — soft, intimate, minimal</option>
-            <option value="I like a balanced, medium energy">Medium — balanced and versatile</option>
-            <option value="I want high energy, loud, and driving">High — loud, driving, and intense</option>
-            <option value="My energy shifts a lot; I like variety and surprise">Varies — unpredictable ups and downs</option>
+            <option value="" disabled selected data-i18n="qo.choose">Choose…</option>
+            <option value="I prefer low-key, soft, and intimate energy" data-answer-es="Prefiero una energía baja, suave e íntima" data-i18n="qo.energy.low">Low — soft, intimate, minimal</option>
+            <option value="I like a balanced, medium energy" data-answer-es="Me gusta una energía media y equilibrada" data-i18n="qo.energy.medium">Medium — balanced and versatile</option>
+            <option value="I want high energy, loud, and driving" data-answer-es="Quiero energía alta, fuerte y con impulso" data-i18n="qo.energy.high">High — loud, driving, and intense</option>
+            <option value="My energy shifts a lot; I like variety and surprise" data-answer-es="Mi energía cambia mucho; me gusta la variedad y la sorpresa" data-i18n="qo.energy.varies">Varies — unpredictable ups and downs</option>
           </select>
         </div>
 
         <div class="quiz-block">
-          <label class="quiz-q" for="quizEnvironment">Where I listen most</label>
+          <label class="quiz-q" for="quizEnvironment" data-i18n="q.environment">Where I listen most</label>
           <select class="quiz-select" id="quizEnvironment" name="quizEnvironment" autocomplete="off">
-            <option value="" disabled selected>Choose…</option>
-            <option value="I usually listen at home, while relaxing or doing chores">At home (relaxing, chores, late night)</option>
-            <option value="I listen a lot on the go — commute, walk, or travel">Commute, walk, or travel</option>
-            <option value="I love open-air, nature, and outdoor hangs">Outdoors (parks, trips, open air)</option>
-            <option value="I thrive in clubs, parties, and loud social spaces">Clubs, parties, or loud rooms</option>
-            <option value="At work or while studying, I want focus-friendly music">Work / focus / study time</option>
+            <option value="" disabled selected data-i18n="qo.choose">Choose…</option>
+            <option value="I usually listen at home, while relaxing or doing chores" data-answer-es="Escucho sobre todo en casa, relajándome o haciendo tareas" data-i18n="qo.environment.home">At home (relaxing, chores, late night)</option>
+            <option value="I listen a lot on the go — commute, walk, or travel" data-answer-es="Escucho mucho en movimiento: traslado, caminata o viaje" data-i18n="qo.environment.commute">Commute, walk, or travel</option>
+            <option value="I love open-air, nature, and outdoor hangs" data-answer-es="Me encanta el aire libre, la naturaleza y planes afuera" data-i18n="qo.environment.outdoors">Outdoors (parks, trips, open air)</option>
+            <option value="I thrive in clubs, parties, and loud social spaces" data-answer-es="Disfruto en clubs, fiestas y espacios sociales ruidosos" data-i18n="qo.environment.clubs">Clubs, parties, or loud rooms</option>
+            <option value="At work or while studying, I want focus-friendly music" data-answer-es="En trabajo o estudio quiero música que ayude a concentrarme" data-i18n="qo.environment.work">Work / focus / study time</option>
           </select>
         </div>
 
         <div class="quiz-block">
-          <label class="quiz-q" for="quizSocial">Social style</label>
+          <label class="quiz-q" for="quizSocial" data-i18n="q.social">Social style</label>
           <select class="quiz-select" id="quizSocial" name="quizSocial" autocomplete="off">
-            <option value="" disabled selected>Choose…</option>
-            <option value="I mostly enjoy music alone">Solo — headphones and my own world</option>
-            <option value="I like small groups and sharing songs with a few people">Small group (friends, car rides, hangouts)</option>
-            <option value="I love the energy of a crowd, concerts, and parties">Crowd — concerts, parties, big rooms</option>
-            <option value="I switch between social and solo depending on mood">Depends on the day (mixed)</option>
+            <option value="" disabled selected data-i18n="qo.choose">Choose…</option>
+            <option value="I mostly enjoy music alone" data-answer-es="Disfruto la música principalmente en solitario" data-i18n="qo.social.solo">Solo — headphones and my own world</option>
+            <option value="I like small groups and sharing songs with a few people" data-answer-es="Me gustan los grupos pequeños y compartir canciones con pocas personas" data-i18n="qo.social.smallGroup">Small group (friends, car rides, hangouts)</option>
+            <option value="I love the energy of a crowd, concerts, and parties" data-answer-es="Me encanta la energía de la multitud, conciertos y fiestas" data-i18n="qo.social.crowd">Crowd — concerts, parties, big rooms</option>
+            <option value="I switch between social and solo depending on mood" data-answer-es="Cambio entre social y solitario según el estado de ánimo" data-i18n="qo.social.mixed">Depends on the day (mixed)</option>
           </select>
         </div>
 
         <div class="quiz-block">
-          <label class="quiz-q" for="quizLyric">Lyrical emphasis</label>
+          <label class="quiz-q" for="quizLyric" data-i18n="q.lyric">Lyrical emphasis</label>
           <select class="quiz-select" id="quizLyric" name="quizLyric" autocomplete="off">
-            <option value="" disabled selected>Choose…</option>
-            <option value="I want strong storytelling, narrative, and concrete lyrics">Storytelling — clear narratives and emotions</option>
-            <option value="I prefer abstract, poetic, and impressionistic words">Abstract / poetic — open to interpretation</option>
-            <option value="Lyrics are secondary; I care more about the beat and the vibe">Vibe over lyrics — the sound leads</option>
-            <option value="I do not have a strong preference; I like a mix of styles">A mix of lyrical styles is fine</option>
+            <option value="" disabled selected data-i18n="qo.choose">Choose…</option>
+            <option value="I want strong storytelling, narrative, and concrete lyrics" data-answer-es="Quiero letras con narrativa fuerte y concreta" data-i18n="qo.lyric.storytelling">Storytelling — clear narratives and emotions</option>
+            <option value="I prefer abstract, poetic, and impressionistic words" data-answer-es="Prefiero palabras abstractas, poéticas e impresionistas" data-i18n="qo.lyric.abstract">Abstract / poetic — open to interpretation</option>
+            <option value="Lyrics are secondary; I care more about the beat and the vibe" data-answer-es="La letra es secundaria; me importa más el ritmo y la vibra" data-i18n="qo.lyric.vibe">Vibe over lyrics — the sound leads</option>
+            <option value="I do not have a strong preference; I like a mix of styles" data-answer-es="No tengo una preferencia fuerte; me gusta mezclar estilos" data-i18n="qo.lyric.mix">A mix of lyrical styles is fine</option>
           </select>
         </div>
 
         <div class="quiz-block">
-          <label class="quiz-q" for="quizNovelty">Nostalgia vs. novelty</label>
+          <label class="quiz-q" for="quizNovelty" data-i18n="q.novelty">Nostalgia vs. novelty</label>
           <select class="quiz-select" id="quizNovelty" name="quizNovelty" autocomplete="off">
-            <option value="" disabled selected>Choose…</option>
-            <option value="I lean to classics, deep cuts, and throwbacks">Classics, throwbacks, and proven favorites</option>
-            <option value="I like fresh, new, and I want the latest sounds">New releases, trending, and the cutting edge</option>
-            <option value="I like a mix of old and new">A balanced mix of old and new</option>
-            <option value="Surprise me — I do not need a rule">Surprise me (no strong rule)</option>
+            <option value="" disabled selected data-i18n="qo.choose">Choose…</option>
+            <option value="I lean to classics, deep cuts, and throwbacks" data-answer-es="Me inclino por clásicos, joyas ocultas y throwbacks" data-i18n="qo.novelty.classics">Classics, throwbacks, and proven favorites</option>
+            <option value="I like fresh, new, and I want the latest sounds" data-answer-es="Me gusta lo fresco y nuevo; quiero los sonidos más recientes" data-i18n="qo.novelty.new">New releases, trending, and the cutting edge</option>
+            <option value="I like a mix of old and new" data-answer-es="Me gusta una mezcla de lo viejo y lo nuevo" data-i18n="qo.novelty.mix">A balanced mix of old and new</option>
+            <option value="Surprise me — I do not need a rule" data-answer-es="Sorpréndeme; no necesito una regla fija" data-i18n="qo.novelty.surprise">Surprise me (no strong rule)</option>
           </select>
         </div>
 
         <div class="favorites-opt-row favorites-opt-disabled" id="useFavoritesWrap">
           <label class="favorites-opt-label" for="useFavorites">
             <input type="checkbox" id="useFavorites" disabled />
-            <span>Use my saved favorites as taste context (<span id="useFavoritesCount">0</span>)</span>
+            <span><span data-i18n="q.useFavorites">Use my saved favorites as taste context</span> (<span id="useFavoritesCount">0</span>)</span>
           </label>
-          <p class="favorites-opt-hint">
+          <p class="favorites-opt-hint" data-i18n="q.useFavoritesHint">
             When checked, your ♥ list (title and artist, up to 40 tracks) is sent with your quiz so picks match your taste.
           </p>
         </div>
 
         <div class="row" style="margin-top: 1.1rem">
-          <button type="button" id="findPersona">Find My Persona</button>
+          <button type="button" id="findPersona" data-i18n="quiz.findPersona">Find My Persona</button>
         </div>
-        <p class="hint" id="quizHint" style="margin-top: 0.75rem; margin-bottom: 0">Answers are combined into one line starting with <code style="font-family: inherit; opacity: 0.9">Quiz Results:</code> and sent to <code style="font-family: inherit; opacity: 0.9">/api/recommend</code>.</p>
+        <p class="hint" id="quizHint" style="margin-top: 0.75rem; margin-bottom: 0" data-i18n="quiz.hint">Answers are combined into one line starting with <code style="font-family: inherit; opacity: 0.9">Quiz Results:</code> and sent to <code style="font-family: inherit; opacity: 0.9">/api/recommend</code>.</p>
     </section>
 
     <section id="results-section" aria-label="Results">
       <div id="personaBanner" class="persona-banner hidden" role="region" aria-labelledby="personaName" aria-hidden="true">
-        <p class="persona-label">Your musical persona</p>
+        <p class="persona-label" data-i18n="persona.label">Your musical persona</p>
         <p class="persona-name" id="personaName"></p>
       </div>
       <div id="playlist-bar" class="playlist-bar hidden" aria-label="Preview playlist">
         <div class="playlist-bar-inner">
           <p class="playlist-now" id="playlistNow"></p>
           <div class="playlist-bar-row">
-            <button type="button" id="playlistPlayAll" aria-label="Preview playlist" title="Preview playlist">▶</button>
-            <button type="button" class="btn-secondary" id="playlistPrev" aria-label="Previous track" title="Previous track">⏮</button>
-            <button type="button" class="btn-secondary" id="playlistNext" aria-label="Next track" title="Next track">⏭</button>
-            <button type="button" class="btn-secondary" id="playlistStop" aria-label="Stop playback" title="Stop">⏹</button>
-            <button type="button" class="btn-secondary" id="savePlaylistBtn">Save playlist</button>
-            <button type="button" class="btn-secondary" id="exportYoutubeBtn">Export to YouTube</button>
+            <button type="button" id="playlistPlayAll" aria-label="Preview playlist" title="Preview playlist" data-i18n-aria-label="playlist.preview" data-i18n-title="playlist.preview">▶</button>
+            <button type="button" class="btn-secondary" id="playlistPrev" aria-label="Previous track" title="Previous track" data-i18n-aria-label="playlist.prev" data-i18n-title="playlist.prev">⏮</button>
+            <button type="button" class="btn-secondary" id="playlistNext" aria-label="Next track" title="Next track" data-i18n-aria-label="playlist.next" data-i18n-title="playlist.next">⏭</button>
+            <button type="button" class="btn-secondary" id="playlistStop" aria-label="Stop playback" title="Stop" data-i18n-aria-label="playlist.stop" data-i18n-title="playlist.stop">⏹</button>
+            <button type="button" class="btn-secondary" id="savePlaylistBtn" data-i18n="playlist.save">Save playlist</button>
+            <button type="button" class="btn-secondary" id="exportYoutubeBtn" data-i18n="playlist.export">Export to YouTube</button>
           </div>
           <p class="playlist-hint">
             Plays your list in order using ~30-second previews from Apple’s catalog (same as each track’s ▶).
@@ -722,6 +733,128 @@
     const personaBannerEl = document.getElementById("personaBanner");
     const personaNameEl = document.getElementById("personaName");
     const favoritesNavCountEl = document.getElementById("favoritesNavCount");
+    const LANGUAGE_STORAGE_KEY = "songRecommenderLanguage";
+    let currentLanguage = "en";
+    const translations = {
+      en: {
+        "nav.recommend": "Recommend songs", "nav.saved": "Saved", "nav.quiz": "Personality quiz", "nav.account": "Account",
+        "header.title": "Musical Personality Quiz", "header.subA": "Answer 5 questions, then <strong>Find My Persona</strong> for a named musical persona and <strong>20</strong> song picks with a short &ldquo;why&rdquo; each.", "header.back": "<br>← Back to Describe",
+        "toast.dismiss": "Dismiss status", "quiz.title": "Musical Personality Quiz", "quiz.sub": "Answer all 5 questions, then we will name your <strong>musical persona</strong> and suggest <strong>20 songs</strong> with a short &ldquo;why&rdquo; each.",
+        "q.energy": "Energy level", "q.environment": "Where I listen most", "q.social": "Social style", "q.lyric": "Lyrical emphasis", "q.novelty": "Nostalgia vs. novelty",
+        "qo.choose": "Choose…",
+        "qo.energy.low": "Low — soft, intimate, minimal", "qo.energy.medium": "Medium — balanced and versatile", "qo.energy.high": "High — loud, driving, and intense", "qo.energy.varies": "Varies — unpredictable ups and downs",
+        "qo.environment.home": "At home (relaxing, chores, late night)", "qo.environment.commute": "Commute, walk, or travel", "qo.environment.outdoors": "Outdoors (parks, trips, open air)", "qo.environment.clubs": "Clubs, parties, or loud rooms", "qo.environment.work": "Work / focus / study time",
+        "qo.social.solo": "Solo — headphones and my own world", "qo.social.smallGroup": "Small group (friends, car rides, hangouts)", "qo.social.crowd": "Crowd — concerts, parties, big rooms", "qo.social.mixed": "Depends on the day (mixed)",
+        "qo.lyric.storytelling": "Storytelling — clear narratives and emotions", "qo.lyric.abstract": "Abstract / poetic — open to interpretation", "qo.lyric.vibe": "Vibe over lyrics — the sound leads", "qo.lyric.mix": "A mix of lyrical styles is fine",
+        "qo.novelty.classics": "Classics, throwbacks, and proven favorites", "qo.novelty.new": "New releases, trending, and the cutting edge", "qo.novelty.mix": "A balanced mix of old and new", "qo.novelty.surprise": "Surprise me (no strong rule)",
+        "q.useFavorites": "Use my saved favorites as taste context", "q.useFavoritesHint": "When checked, your ♥ list (title and artist, up to 40 tracks) is sent with your quiz so picks match your taste.",
+        "quiz.findPersona": "Find My Persona", "quiz.hint": "Answers are combined into one line starting with <code style=\"font-family: inherit; opacity: 0.9\">Quiz Results:</code> and sent to <code style=\"font-family: inherit; opacity: 0.9\">/api/recommend</code>.",
+        "persona.label": "Your musical persona", "playlist.preview": "Preview playlist", "playlist.prev": "Previous track", "playlist.next": "Next track", "playlist.stop": "Stop playback", "playlist.save": "Save playlist", "playlist.export": "Export to YouTube", "instruction.recommendSpanish": "Provide the song descriptions and persona name in Spanish.",
+        "card.emptyResults": "No songs returned. Try a different prompt.", "card.track": "Track {{index}}", "card.addFav": "Add to favorites", "card.removeFav": "Remove from favorites",
+        "card.play": "Play 30-second preview", "card.pause": "Pause preview", "card.redo": "Redo", "card.more": "More like this",
+        "card.redoAria": "Replace track {{index}} with a different song for the same prompt", "card.moreAria": "Replace the playlist with 8 tracks similar to track {{index}}, including this song",
+        "status.loadingPreview": "Loading preview…", "status.playlistNow": "Playlist: track {{index}} of {{total}} (~30s previews)", "status.playlistReady": "{{count}} tracks — press ▶ to preview the entire playlist", "status.playlistFinished": "Playlist finished.", "status.audioFail": "Could not play audio in this browser.", "status.genericError": "Something went wrong.",
+        "status.refreshingLanguage": "Updating results for selected language…",
+      },
+      es: {
+        "nav.recommend": "Recomendar canciones", "nav.saved": "Guardadas", "nav.quiz": "Quiz de personalidad", "nav.account": "Cuenta",
+        "header.title": "Quiz de Personalidad Musical", "header.subA": "Responde 5 preguntas y luego <strong>Encuentra mi persona</strong> para obtener una persona musical con nombre y <strong>20</strong> canciones con un breve &ldquo;por qué&rdquo;.", "header.back": "<br>← Volver a Describir",
+        "toast.dismiss": "Cerrar estado", "quiz.title": "Quiz de Personalidad Musical", "quiz.sub": "Responde las 5 preguntas y luego nombraremos tu <strong>persona musical</strong> y sugeriremos <strong>20 canciones</strong> con un breve &ldquo;por qué&rdquo; cada una.",
+        "q.energy": "Nivel de energía", "q.environment": "Dónde escucho más", "q.social": "Estilo social", "q.lyric": "Enfoque lírico", "q.novelty": "Nostalgia vs. novedad",
+        "qo.choose": "Elige…",
+        "qo.energy.low": "Baja — suave, íntima, minimalista", "qo.energy.medium": "Media — equilibrada y versátil", "qo.energy.high": "Alta — fuerte, intensa y con impulso", "qo.energy.varies": "Variable — subidas y bajadas impredecibles",
+        "qo.environment.home": "En casa (relajado/a, tareas, noche)", "qo.environment.commute": "Traslado, caminata o viaje", "qo.environment.outdoors": "Al aire libre (parques, salidas, naturaleza)", "qo.environment.clubs": "Clubs, fiestas o lugares ruidosos", "qo.environment.work": "Trabajo / enfoque / estudio",
+        "qo.social.solo": "En solitario — auriculares y mi mundo", "qo.social.smallGroup": "Grupo pequeño (amistades, coche, planes)", "qo.social.crowd": "Multitud — conciertos, fiestas, lugares grandes", "qo.social.mixed": "Depende del día (mixto)",
+        "qo.lyric.storytelling": "Narrativa — historias claras y emoción", "qo.lyric.abstract": "Abstracto / poético — abierto a interpretación", "qo.lyric.vibe": "Vibra sobre letra — manda el sonido", "qo.lyric.mix": "Me sirve una mezcla de estilos líricos",
+        "qo.novelty.classics": "Clásicos, throwbacks y favoritas probadas", "qo.novelty.new": "Lanzamientos nuevos, tendencias y vanguardia", "qo.novelty.mix": "Una mezcla equilibrada de viejo y nuevo", "qo.novelty.surprise": "Sorpréndeme (sin regla fija)",
+        "q.useFavorites": "Usar mis favoritas guardadas como contexto de gusto", "q.useFavoritesHint": "Cuando se activa, tu lista de ♥ (título y artista, hasta 40 canciones) se envía con el quiz para que las recomendaciones se adapten a tu gusto.",
+        "quiz.findPersona": "Encuentra mi persona", "quiz.hint": "Las respuestas se combinan en una línea que empieza con <code style=\"font-family: inherit; opacity: 0.9\">Quiz Results:</code> y se envía a <code style=\"font-family: inherit; opacity: 0.9\">/api/recommend</code>.",
+        "persona.label": "Tu persona musical", "playlist.preview": "Previsualizar playlist", "playlist.prev": "Pista anterior", "playlist.next": "Siguiente pista", "playlist.stop": "Detener reproducción", "playlist.save": "Guardar playlist", "playlist.export": "Exportar a YouTube", "instruction.recommendSpanish": "Provide the song descriptions and persona name in Spanish.",
+        "card.emptyResults": "No se devolvieron canciones. Prueba con otro prompt.", "card.track": "Pista {{index}}", "card.addFav": "Añadir a guardadas", "card.removeFav": "Quitar de guardadas",
+        "card.play": "Reproducir preview de 30 segundos", "card.pause": "Pausar preview", "card.redo": "Rehacer", "card.more": "Más como esta",
+        "card.redoAria": "Reemplazar la pista {{index}} por otra diferente para el mismo prompt", "card.moreAria": "Reemplazar la playlist con 8 canciones similares a la pista {{index}}, incluyendo esta canción",
+        "status.loadingPreview": "Cargando preview…", "status.playlistNow": "Playlist: pista {{index}} de {{total}} (previews de ~30 s)", "status.playlistReady": "{{count}} canciones — pulsa ▶ para previsualizar toda la playlist", "status.playlistFinished": "Playlist finalizada.", "status.audioFail": "No se pudo reproducir audio en este navegador.", "status.genericError": "Algo salió mal.",
+        "status.refreshingLanguage": "Actualizando resultados para el idioma seleccionado…",
+      },
+    };
+    function t(key, vars = {}) {
+      const template = (translations[currentLanguage] && translations[currentLanguage][key]) || translations.en[key] || key;
+      return String(template).replace(/\{\{(\w+)\}\}/g, (_, name) => String(vars[name] ?? ""));
+    }
+    function switchLanguage(lang) {
+      currentLanguage = lang === "es" ? "es" : "en";
+      localStorage.setItem(LANGUAGE_STORAGE_KEY, currentLanguage);
+      document.documentElement.lang = currentLanguage;
+      document.querySelectorAll("[data-i18n]").forEach((el) => {
+        const key = el.getAttribute("data-i18n");
+        if (!key) return;
+        const value = t(key);
+        if (value.includes("<")) el.innerHTML = value; else el.textContent = value;
+      });
+      document.querySelectorAll("[data-i18n-aria-label]").forEach((el) => {
+        const key = el.getAttribute("data-i18n-aria-label");
+        if (key) el.setAttribute("aria-label", t(key));
+      });
+      document.querySelectorAll("[data-i18n-title]").forEach((el) => {
+        const key = el.getAttribute("data-i18n-title");
+        if (key) el.setAttribute("title", t(key));
+      });
+      document.getElementById("langEn")?.classList.toggle("is-active", currentLanguage === "en");
+      document.getElementById("langEs")?.classList.toggle("is-active", currentLanguage === "es");
+      if (currentSongs.length) {
+        renderCards(currentSongs);
+        translateCurrentCardDescriptions();
+      }
+      updateHeartButtons();
+      updatePlayButtons();
+      updatePlaylistBar();
+    }
+
+    let descriptionTranslateRequestId = 0;
+
+    async function translateCurrentCardDescriptions() {
+      if (formBusy || !currentSongs.length) return;
+      const sourceDescriptions = currentSongs.map((s) => String(s.why || ""));
+      if (!sourceDescriptions.some((txt) => txt.trim())) return;
+      const requestId = ++descriptionTranslateRequestId;
+      const targetLang = currentLanguage;
+      try {
+        const res = await fetch("/api/translate-descriptions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            descriptions: sourceDescriptions,
+            target_lang: targetLang,
+          }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          const detail = data.detail;
+          const msg =
+            typeof detail === "string"
+              ? detail
+              : Array.isArray(detail)
+                ? detail.map((d) => d.msg || d).join(" ")
+                : res.statusText || "Request failed";
+          throw new Error(msg);
+        }
+        if (requestId !== descriptionTranslateRequestId || targetLang !== currentLanguage) {
+          return;
+        }
+        const translated = Array.isArray(data.descriptions) ? data.descriptions : [];
+        if (translated.length !== currentSongs.length) {
+          return;
+        }
+        currentSongs = currentSongs.map((song, i) => ({
+          ...song,
+          why: String(translated[i] ?? song.why ?? ""),
+        }));
+        renderCards(currentSongs);
+      } catch (e) {
+        showStatus(e.message || t("status.genericError"), { error: true });
+      }
+    }
+
     let lastRequestPrompt = "";
     const FAVORITES_STORAGE_KEY = "songRecommenderFavorites";
     const PLAYLISTS_STORAGE_KEY = "songRecommenderSavedPlaylists";
@@ -901,7 +1034,7 @@
         const on = isFavorite(song);
         btn.classList.toggle("is-favorited", on);
         btn.setAttribute("aria-pressed", on ? "true" : "false");
-        btn.setAttribute("aria-label", on ? "Remove from favorites" : "Add to favorites");
+        btn.setAttribute("aria-label", on ? t("card.removeFav") : t("card.addFav"));
       });
     }
 
@@ -958,7 +1091,7 @@
         }
         playlistMode = false;
         playingIndex = null;
-        showStatus("Playlist finished.");
+        showStatus(t("status.playlistFinished"));
         updatePlayButtons();
         updatePlaylistBar();
         return;
@@ -1040,7 +1173,7 @@
         statusToastEl && statusToastEl.classList.remove("error");
       } catch (_) {
         playingIndex = null;
-        showStatus("Could not play audio in this browser.", { error: true, sticky: true });
+        showStatus(t("status.audioFail"), { error: true, sticky: true });
       }
       updatePlayButtons();
       updatePlaylistBar();
@@ -1054,7 +1187,7 @@
           btn.textContent = "⏳";
           btn.disabled = true;
           btn.setAttribute("aria-busy", "true");
-          btn.setAttribute("aria-label", "Loading preview");
+          btn.setAttribute("aria-label", t("status.loadingPreview"));
           btn.removeAttribute("title");
           return;
         }
@@ -1062,8 +1195,8 @@
         btn.disabled = formBusy;
         const playing = playingIndex === idx && !audioPlayer.paused;
         btn.textContent = playing ? "⏸" : "▶";
-        btn.setAttribute("aria-label", playing ? "Pause preview" : "Play 30-second preview");
-        btn.setAttribute("title", playing ? "Pause preview" : "Play 30-second preview");
+        btn.setAttribute("aria-label", playing ? t("card.pause") : t("card.play"));
+        btn.setAttribute("title", playing ? t("card.pause") : t("card.play"));
         btn.setAttribute("aria-pressed", playing ? "true" : "false");
       });
       highlightPlayingCard();
@@ -1086,11 +1219,11 @@
       bar.classList.remove("hidden");
 
       if (playlistMode && playLoadingIndex !== null) {
-        now.textContent = "Loading preview…";
+        now.textContent = t("status.loadingPreview");
       } else if (playlistMode && playingIndex !== null) {
-        now.textContent = `Playlist: track ${playingIndex + 1} of ${currentSongs.length} (~30s previews)`;
+        now.textContent = t("status.playlistNow", { index: playingIndex + 1, total: currentSongs.length });
       } else {
-        now.textContent = `${currentSongs.length} tracks — press ▶ to preview the entire playlist`;
+        now.textContent = t("status.playlistReady", { count: currentSongs.length });
       }
 
       btnPlayAll.disabled = formBusy;
@@ -1264,11 +1397,19 @@
       const qly = document.getElementById("quizLyric");
       const qno = document.getElementById("quizNovelty");
       if (!qe || !qenv || !qso || !qly || !qno) return "";
-      const energy = (qe.value || "").trim();
-      const environment = (qenv.value || "").trim();
-      const social = (qso.value || "").trim();
-      const lyric = (qly.value || "").trim();
-      const novelty = (qno.value || "").trim();
+      const selectedQuizAnswer = (selectEl) => {
+        if (!selectEl || !selectEl.selectedOptions || !selectEl.selectedOptions.length) return "";
+        const opt = selectEl.selectedOptions[0];
+        if (currentLanguage === "es") {
+          return String(opt.getAttribute("data-answer-es") || opt.value || "").trim();
+        }
+        return String(opt.value || "").trim();
+      };
+      const energy = selectedQuizAnswer(qe);
+      const environment = selectedQuizAnswer(qenv);
+      const social = selectedQuizAnswer(qso);
+      const lyric = selectedQuizAnswer(qly);
+      const novelty = selectedQuizAnswer(qno);
       if (!energy || !environment || !social || !lyric || !novelty) {
         return "";
       }
@@ -1290,7 +1431,7 @@
       }));
       gridEl.innerHTML = "";
       if (!currentSongs.length) {
-        gridEl.innerHTML = '<div class="empty">No songs returned. Try a different prompt.</div>';
+        gridEl.innerHTML = `<div class="empty">${t("card.emptyResults")}</div>`;
         updatePlaylistBar();
         return;
       }
@@ -1299,18 +1440,18 @@
         article.className = "card";
         article.innerHTML = `
           <div class="card-header-row">
-            <span class="card-num">Track ${i + 1}</span>
-            <button type="button" class="btn-heart" data-track-index="${i}" aria-label="Add to favorites" aria-pressed="false">♥</button>
+            <span class="card-num">${t("card.track", { index: i + 1 })}</span>
+            <button type="button" class="btn-heart" data-track-index="${i}" aria-label="${t("card.addFav")}" aria-pressed="false">♥</button>
           </div>
           <h2 class="card-title"></h2>
           <p class="card-artist"></p>
           <p class="card-why"></p>
           <div class="card-actions">
             <div class="card-actions-row">
-              <button type="button" class="btn-play" data-track-index="${i}" aria-label="Play 30-second preview" title="Play preview">▶</button>
-              <button type="button" class="btn-secondary btn-redo">Redo</button>
+              <button type="button" class="btn-play" data-track-index="${i}" aria-label="${t("card.play")}" title="${t("card.play")}">▶</button>
+              <button type="button" class="btn-secondary btn-redo">${t("card.redo")}</button>
             </div>
-            <button type="button" class="btn-secondary btn-more-like">More like this</button>
+            <button type="button" class="btn-secondary btn-more-like">${t("card.more")}</button>
           </div>
         `;
         article.querySelector(".card-title").textContent = song.title || "—";
@@ -1321,13 +1462,13 @@
         const redoBtn = article.querySelector(".btn-redo");
         redoBtn.setAttribute(
           "aria-label",
-          `Replace track ${i + 1} with a different song for the same prompt`,
+          t("card.redoAria", { index: i + 1 }),
         );
         redoBtn.addEventListener("click", () => redoTrack(i));
         const moreLikeBtn = article.querySelector(".btn-more-like");
         moreLikeBtn.setAttribute(
           "aria-label",
-          `Replace the playlist with 8 tracks similar to track ${i + 1}, including this song`,
+          t("card.moreAria", { index: i + 1 }),
         );
         moreLikeBtn.addEventListener("click", () => moreLikeThis(i));
         const heartBtn = article.querySelector(".btn-heart");
@@ -1351,6 +1492,9 @@
       setUiBusy(true, "Finding your persona and songs…");
       try {
         const body = { prompt: story };
+        if (currentLanguage === "es") {
+          body.prompt = `${story}\n\n${t("instruction.recommendSpanish")}`;
+        }
         const favs = favoritesForApi();
         if (favs.length) {
           body.favorites = favs;
@@ -1521,6 +1665,9 @@
     document.getElementById("playlistStop").addEventListener("click", stopPlayback);
     document.getElementById("savePlaylistBtn").addEventListener("click", saveCurrentPlaylist);
     document.getElementById("exportYoutubeBtn").addEventListener("click", exportCurrentToYouTube);
+    document.getElementById("langEn").addEventListener("click", () => switchLanguage("en"));
+    document.getElementById("langEs").addEventListener("click", () => switchLanguage("es"));
+    switchLanguage(localStorage.getItem(LANGUAGE_STORAGE_KEY) === "es" ? "es" : "en");
   </script>
 </body>
 </html>
