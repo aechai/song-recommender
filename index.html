@@ -485,20 +485,6 @@
         id="prompt"
         placeholder="e.g. Late-night synth-pop with dreamy vocals, similar to The Weeknd but more upbeat…"
       ></textarea>
-      <div class="row" style="margin-top: 0.75rem;">
-        <label for="songCount" style="margin: 0; font-size: 0.85rem; font-weight: 600; color: var(--muted);">
-          Number of songs
-        </label>
-        <select id="songCount" style="padding: 0.5rem 0.85rem; border-radius: 999px; border: 1px solid var(--border); background: var(--bg-elevated); color: var(--text); font-weight: 600;">
-          <option value="5">5</option>
-          <option value="8" selected>8</option>
-          <option value="10">10</option>
-          <option value="12">12</option>
-          <option value="15">15</option>
-          <option value="20">20</option>
-        </select>
-        <span class="hint">1–20 supported</span>
-      </div>
       <div class="favorites-opt-row favorites-opt-disabled" id="useFavoritesWrap">
         <label class="favorites-opt-label" for="useFavorites">
           <input type="checkbox" id="useFavorites" disabled />
@@ -544,7 +530,6 @@
     const promptEl = document.getElementById("prompt");
     const submitBtn = document.getElementById("submit");
     const randomBtn = document.getElementById("randomPrompt");
-    const songCountEl = document.getElementById("songCount");
     const statusEl = document.getElementById("status");
     const gridEl = document.getElementById("grid");
     const favoritesNavCountEl = document.getElementById("favoritesNavCount");
@@ -1175,14 +1160,12 @@
         showError("Enter what you want to hear.");
         return;
       }
-      const countRaw = songCountEl ? parseInt(songCountEl.value, 10) : 8;
-      const count = Number.isFinite(countRaw) ? Math.min(20, Math.max(1, countRaw)) : 8;
 
       lastRequestPrompt = prompt;
       stopPlayback();
       setUiBusy(true, "Fetching recommendations…");
       try {
-        const body = { prompt, count };
+        const body = { prompt };
         const favs = favoritesForApi();
         if (favs.length) {
           body.favorites = favs;
