@@ -887,7 +887,7 @@
         "persona.label": "Your musical persona", "playlist.preview": "Preview playlist", "playlist.prev": "Previous track", "playlist.next": "Next track", "playlist.stop": "Stop playback", "playlist.save": "Save playlist", "playlist.export": "Export to YouTube", "instruction.recommendSpanish": "Provide the song descriptions and persona name in Spanish.",
         "card.emptyResults": "No songs returned. Try a different prompt.", "card.track": "Track {{index}}", "card.addFav": "Add to favorites", "card.removeFav": "Remove from favorites",
         "card.play": "Play 30-second preview", "card.pause": "Pause preview", "card.redo": "Redo", "card.more": "More like this",
-        "card.redoAria": "Replace track {{index}} with a different song for the same prompt", "card.moreAria": "Replace the playlist with 8 tracks similar to track {{index}}, including this song",
+        "card.redoAria": "Replace track {{index}} with a different song for the same prompt", "card.moreAria": "Replace the playlist with 20 tracks similar to track {{index}}, including this song",
         "status.loadingPreview": "Loading preview…", "status.playlistNow": "Playlist: track {{index}} of {{total}} (~30s previews)", "status.playlistReady": "{{count}} tracks — press ▶ to preview the entire playlist", "status.playlistFinished": "Playlist finished.", "status.audioFail": "Could not play audio in this browser.", "status.genericError": "Something went wrong.",
         "status.refreshingLanguage": "Updating results for selected language…",
       },
@@ -908,7 +908,7 @@
         "persona.label": "Tu persona musical", "playlist.preview": "Previsualizar playlist", "playlist.prev": "Pista anterior", "playlist.next": "Siguiente pista", "playlist.stop": "Detener reproducción", "playlist.save": "Guardar playlist", "playlist.export": "Exportar a YouTube", "instruction.recommendSpanish": "Provide the song descriptions and persona name in Spanish.",
         "card.emptyResults": "No se devolvieron canciones. Prueba con otro prompt.", "card.track": "Pista {{index}}", "card.addFav": "Añadir a guardadas", "card.removeFav": "Quitar de guardadas",
         "card.play": "Reproducir preview de 30 segundos", "card.pause": "Pausar preview", "card.redo": "Rehacer", "card.more": "Más como esta",
-        "card.redoAria": "Reemplazar la pista {{index}} por otra diferente para el mismo prompt", "card.moreAria": "Reemplazar la playlist con 8 canciones similares a la pista {{index}}, incluyendo esta canción",
+        "card.redoAria": "Reemplazar la pista {{index}} por otra diferente para el mismo prompt", "card.moreAria": "Reemplazar la playlist con 20 canciones similares a la pista {{index}}, incluyendo esta canción",
         "status.loadingPreview": "Cargando preview…", "status.playlistNow": "Playlist: pista {{index}} de {{total}} (previews de ~30 s)", "status.playlistReady": "{{count}} canciones — pulsa ▶ para previsualizar toda la playlist", "status.playlistFinished": "Playlist finalizada.", "status.audioFail": "No se pudo reproducir audio en este navegador.", "status.genericError": "Algo salió mal.",
         "status.refreshingLanguage": "Actualizando resultados para el idioma seleccionado…",
       },
@@ -1749,13 +1749,13 @@
           throw new Error(msg);
         }
         const songs = data.songs || [];
-        if (songs.length !== 8) {
-          throw new Error("Expected 8 tracks from similar-songs request.");
+        if (songs.length !== 20) {
+          throw new Error("Expected 20 tracks from similar-songs request.");
         }
         renderCards(songs);
         setPersonaBanner(null);
         const ref = `${seed.title} — ${seed.artist}`.trim() || "your pick";
-        let msg = `8 tracks similar to ${ref} (includes your selected track)`;
+        let msg = `20 tracks similar to ${ref} (includes your selected track)`;
         if (favs.length) {
           msg += " · used your favorites as taste context";
         }

@@ -30,6 +30,7 @@ logger = logging.getLogger("song_recommender")
 
 SESSION_COOKIE = "sr_session"
 _oauth_states: dict[str, str] = {}
+_oauth_state_to_sid: dict[str, str] = {}
 _google_tokens: dict[str, dict[str, Any]] = {}
 
 
@@ -42,6 +43,25 @@ def _env_required(var: str) -> str:
     if not v:
         raise HTTPException(status_code=500, detail=f"{var} is not set in .env")
     return v
+
+
+def _oauth_redirect_uri(request: Request) -> str:
+    """Use a stable redirect URI for OAuth.
+
+    For local development (localhost/127.0.0.1), prefer the current request origin
+    so callback port/host always matches where the app is running.
+    """
+    runtime_uri = str(request.url_for("auth_google_callback"))
+    configured = os.getenv("GOOGLE_REDIRECT_URI", "").strip()
+    if not configured:
+        return runtime_uri
+    try:
+        cfg = httpx.URL(configured)
+        if cfg.host in {"127.0.0.1", "localhost"}:
+            return runtime_uri
+    except Exception:
+        pass
+    return configured
 
 
 def _get_or_set_session_id(request: Request, response: JSONResponse | RedirectResponse | None = None) -> str:
@@ -373,7 +393,7 @@ async def account_status(request: Request) -> JSONResponse:
 @app.get("/auth/google/start")
 async def auth_google_start(request: Request) -> RedirectResponse:
     client_id = _env_required("GOOGLE_CLIENT_ID")
-    redirect_uri = _env_required("GOOGLE_REDIRECT_URI")
+    redirect_uri = _oauth_redirect_uri(request)
     state = secrets.token_urlsafe(18)
 
     auth_url = "https://accounts.google.com/o/oauth2/v2/auth"
@@ -392,6 +412,7 @@ async def auth_google_start(request: Request) -> RedirectResponse:
     resp = RedirectResponse(url=str(httpx.URL(auth_url, params=params)))
     sid = _get_or_set_session_id(request, resp)
     _oauth_states[sid] = state
+    _oauth_state_to_sid[state] = sid
     return resp
 
 
@@ -400,14 +421,25 @@ async def auth_google_callback(request: Request, code: str = Query(default=""), 
     if not code:
         raise HTTPException(status_code=400, detail="Missing code.")
     resp = RedirectResponse(url="/account")
-    sid = _get_or_set_session_id(request, resp)
+    sid = request.cookies.get(SESSION_COOKIE, "").strip()
+    mapped_sid = _oauth_state_to_sid.get(state, "")
+    if not sid and mapped_sid:
+        sid = mapped_sid
+        resp.set_cookie(
+            key=SESSION_COOKIE,
+            value=sid,
+            httponly=True,
+            samesite="lax",
+        )
+    elif not sid:
+        sid = _get_or_set_session_id(request, resp)
     expected = _oauth_states.get(sid)
     if not expected or not state or state != expected:
         raise HTTPException(status_code=400, detail="Invalid OAuth state. Try linking again.")
 
     client_id = _env_required("GOOGLE_CLIENT_ID")
     client_secret = _env_required("GOOGLE_CLIENT_SECRET")
-    redirect_uri = _env_required("GOOGLE_REDIRECT_URI")
+    redirect_uri = _oauth_redirect_uri(request)
     token_url = "https://oauth2.googleapis.com/token"
     data = {
         "code": code,
@@ -437,6 +469,7 @@ async def auth_google_callback(request: Request, code: str = Query(default=""), 
         "token_type": payload.get("token_type", "Bearer"),
     }
     _oauth_states.pop(sid, None)
+    _oauth_state_to_sid.pop(state, None)
     return resp
 
 
@@ -445,7 +478,9 @@ async def auth_google_unlink(request: Request) -> JSONResponse:
     resp = JSONResponse({"ok": True})
     sid = _get_or_set_session_id(request, resp)
     _google_tokens.pop(sid, None)
-    _oauth_states.pop(sid, None)
+    stale_state = _oauth_states.pop(sid, None)
+    if stale_state:
+        _oauth_state_to_sid.pop(stale_state, None)
     return resp
 
 
