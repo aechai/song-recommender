@@ -9,7 +9,8 @@ A small **FastAPI** app with a static frontend that suggests **20 songs at a tim
 | Area | What it does |
 |------|----------------|
 | **Recommendations** | Enter a vibe, genre, artist, or scenario; the model returns **20** tracks with a short **why** for each. |
-| **Music personality quiz** | On **`/personality-quiz`**, answer **5** multiple-choice questions; the model returns a **musical persona** plus **20** song picks with a short **why** each (answers are sent as `Quiz Results: …` to **`POST /api/recommend`**). Same previews, optional Saved-as-context, redo / more-like, hearts, and save-playlist as the main UI. |
+| **Music personality quiz** | On **`/personality-quiz`**, answer **5** multiple-choice questions; the model returns a **musical persona** plus **20** song picks with a short **why** each (answers are sent as `Quiz Results: …` to **`POST /api/recommend`**). **Clean Mode** sits beside **Find My Persona**. Same previews, optional Saved-as-context, redo / more-like, hearts, and save-playlist as the main UI. |
+| **Clean Mode** | Optional toggle on **`/`** and **`/personality-quiz`**. When on, requests include **`clean_mode: true`**; the backend adds a strict system-prompt rule so the model should suggest only **clean** or **radio-edit** versions (no explicit lyrics / parental-advisory picks). Applies to initial recommendations, **Redo**, and **More like this**. |
 | **Saved as context** | Optional checkbox sends up to **40** saved tracks (title + artist) with the prompt so picks align with taste. |
 | **Redo one track** | Replace a single card with another song that still fits the same prompt (avoids duplicates with the rest of the list and favorites). |
 | **More like this** | Pick one result; the app fetches **19** similar songs and shows **20** tracks total with your pick **first**. |
@@ -115,11 +116,13 @@ Body:
 ```json
 {
   "prompt": "Late-night synth-pop, dreamy vocals",
-  "favorites": [{ "title": "Optional", "artist": "Taste hints" }]
+  "favorites": [{ "title": "Optional", "artist": "Taste hints" }],
+  "clean_mode": false
 }
 ```
 
 - `favorites` is optional; when present, the backend trims to **40** entries and adds taste context to the model prompt.
+- `clean_mode` is optional (default **`false`**). When **`true`**, the system message includes a **CRITICAL** instruction: only suggest **clean** or **radio-edit** tracks; do not suggest songs with explicit lyrics or parental-advisory warnings. The same suffix applies to **quiz** payloads (`Quiz Results: …`).
 
 Response:
 
@@ -144,15 +147,18 @@ Body (conceptually):
   "prompt": "same user request as the list",
   "replace": { "title": "…", "artist": "…" },
   "others": [{ "title": "…", "artist": "…" }],
-  "favorites": []
+  "favorites": [],
+  "clean_mode": false
 }
 ```
+
+- Optional **`clean_mode`**: same behavior as **`POST /api/recommend`** when set to **`true`**.
 
 Response: `{ "song": { "title", "artist", "why" } }`.
 
 ### `POST /api/recommend/similar`
 
-**More like this:** body includes `seed` (title/artist), optional `seed_why`, optional `context_prompt` (original textarea), optional `favorites`.
+**More like this:** body includes `seed` (title/artist), optional `seed_why`, optional `context_prompt` (original textarea), optional `favorites`, optional **`clean_mode`** (boolean; when **`true`**, the same clean/radio-edit system suffix is applied).
 
 Response: `{ "songs": [ … ] }` — **20** items: the **seed first**, then **19** similar tracks.
 
@@ -225,6 +231,7 @@ Notes:
 ## Current limitations
 
 - **LLM output:** Titles/artists are model-generated; mistakes or obscure picks can occur. The app **retries** on bad JSON and on some duplicate cases for replace/similar flows, but cannot guarantee correctness.
+- **Clean Mode:** Steering is **prompt-only** (no store/catalog explicit flags). The model may still name a track whose album has an explicit version elsewhere; users should treat it as a best-effort filter.
 - **No user database:** Saved tracks/playlists are **only in that browser**. YouTube linking is **session-only** (in-memory) and requires re-linking after a server restart.
 - **Previews only:** Audio is **~30 seconds** from Apple’s catalog when a preview exists; **full streaming** would need Spotify/Apple Music APIs and user login (out of scope here).
 - **Preview gaps:** Some regions or tracks may have **no** `previewUrl`; the UI skips or shows an error for that clip.
@@ -266,6 +273,7 @@ Notes:
 
 ## Add-on updates (latest + theme pass)
 
+- **Clean Mode:** **Explicit content filter** via a sage/rose-gold **Clean Mode** toggle on **`index.html`** (near the describe form actions) and **`personality-quiz.html`** (beside **Find My Persona**). Sends **`clean_mode: true`** on **`POST /api/recommend`**, **`POST /api/recommend/similar`**, and **`POST /api/recommend/one`** when enabled; `main.py` appends the strict clean/radio-edit instruction to the system prompt for those calls (including quiz `Quiz Results:` flows).
 - **Aesthetic UI overhaul:** `index.html`, `personality-quiz.html`, `favorites.html`, `playlists.html`, and `account.html` were updated to a soft Pinterest/aura visual style (dreamy gradients, glassmorphism panels/cards, rounded corners, and lifted gradient buttons) while preserving existing functionality.
 - **Typography refresh:** UI now uses a serif-forward headline style (`Playfair Display`) with clean sans-serif body copy (`Montserrat`) for a more editorial/pinterest feel.
 - **Persona visual polish:** The quiz persona area includes subtle glow/sparkle treatment for stronger emphasis.

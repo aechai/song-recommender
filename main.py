@@ -231,6 +231,12 @@ class SongRef(BaseModel):
     artist: str = ""
 
 
+CLEAN_MODE_SYSTEM_SUFFIX = (
+    'CRITICAL: Only suggest "Clean" or "Radio Edit" versions of tracks. '
+    "Do not recommend any songs with explicit lyrics or parental advisory warnings."
+)
+
+
 class RecommendRequest(BaseModel):
     prompt: str = Field(
         ...,
@@ -247,6 +253,10 @@ class RecommendRequest(BaseModel):
         default_factory=list,
         description="Optional saved tracks to steer taste (title + artist).",
     )
+    clean_mode: bool = Field(
+        default=False,
+        description='If true, only suggest clean/radio-edit tracks (no explicit lyrics).',
+    )
 
 
 class ReplaceSongRequest(BaseModel):
@@ -256,6 +266,10 @@ class ReplaceSongRequest(BaseModel):
     favorites: list[SongRef] = Field(
         default_factory=list,
         description="Optional saved tracks to steer taste when replacing one pick.",
+    )
+    clean_mode: bool = Field(
+        default=False,
+        description='If true, only suggest clean/radio-edit tracks (no explicit lyrics).',
     )
 
 
@@ -274,6 +288,10 @@ class SimilarFromTrackRequest(BaseModel):
     favorites: list[SongRef] = Field(
         default_factory=list,
         description="Optional saved tracks to steer taste.",
+    )
+    clean_mode: bool = Field(
+        default=False,
+        description='If true, only suggest clean/radio-edit tracks (no explicit lyrics).',
     )
 
 
@@ -692,6 +710,9 @@ async def recommend(body: RecommendRequest) -> dict:
             "Choose real, well-known songs that fit the user's request."
         )
 
+    if body.clean_mode:
+        system = f"{system} {CLEAN_MODE_SYSTEM_SUFFIX}"
+
     parse_errors: list[str] = []
     songs: list[dict] | None = None
     persona: str | None = None
@@ -847,6 +868,8 @@ async def recommend_similar(body: SimilarFromTrackRequest) -> dict:
         "(same genre, era, production style, collaborators, or clear sonic kinship). "
         f'Do not include "{seed_norm["title"]}" by {seed_norm["artist"]} or any obvious duplicate title+artist.'
     )
+    if body.clean_mode:
+        system = f"{system} {CLEAN_MODE_SYSTEM_SUFFIX}"
     user = (
         f'The reference track is "{seed_norm["title"]}" by {seed_norm["artist"]}.\n'
         f"Suggest {similar_count} other songs a listener would enjoy if they love that track."
@@ -966,6 +989,8 @@ async def recommend_one(body: ReplaceSongRequest) -> dict:
         '"title" (string), "artist" (string), "why" (one short sentence explaining the pick). '
         "Choose a real, well-known song that fits the user's request."
     )
+    if body.clean_mode:
+        system = f"{system} {CLEAN_MODE_SYSTEM_SUFFIX}"
     user = (
         f"Playlist request: {body.prompt}\n\n"
         f'The user wants a different song instead of "{body.replace.title}" by '

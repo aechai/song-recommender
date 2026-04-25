@@ -273,6 +273,101 @@
       line-height: 1.4;
     }
 
+    .clean-mode-row {
+      margin-top: 0.85rem;
+      padding-top: 0.85rem;
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.5rem 1rem;
+    }
+
+    .clean-mode-switch {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.7rem;
+      cursor: pointer;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .clean-mode-switch input {
+      position: absolute;
+      opacity: 0;
+      width: 0;
+      height: 0;
+      pointer-events: none;
+    }
+
+    .clean-mode-track {
+      position: relative;
+      flex-shrink: 0;
+      width: 2.85rem;
+      height: 1.55rem;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.55);
+      border: 1px solid rgba(199, 155, 107, 0.35);
+      box-shadow:
+        inset 0 1px 4px rgba(181, 139, 158, 0.12),
+        0 4px 12px rgba(181, 139, 158, 0.08);
+      transition:
+        background 0.22s ease,
+        border-color 0.22s ease,
+        box-shadow 0.22s ease;
+    }
+
+    .clean-mode-knob {
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: calc(1.55rem - 4px);
+      height: calc(1.55rem - 4px);
+      border-radius: 50%;
+      background: linear-gradient(160deg, #fffefb 0%, #f3e8df 100%);
+      box-shadow:
+        0 2px 6px rgba(76, 59, 68, 0.14),
+        0 0 0 1px rgba(255, 255, 255, 0.65) inset;
+      transition: transform 0.24s cubic-bezier(0.34, 1.2, 0.64, 1), box-shadow 0.22s ease;
+    }
+
+    .clean-mode-switch input:checked + .clean-mode-track {
+      background: linear-gradient(135deg, #c5dcc8 0%, var(--sage) 55%, #8aa896 100%);
+      border-color: rgba(124, 156, 138, 0.55);
+      box-shadow:
+        inset 0 1px 3px rgba(255, 255, 255, 0.35),
+        0 6px 18px rgba(155, 184, 165, 0.38);
+    }
+
+    .clean-mode-switch input:checked + .clean-mode-track .clean-mode-knob {
+      transform: translateX(1.28rem);
+      background: linear-gradient(160deg, #fff 0%, #faf6f2 100%);
+      box-shadow:
+        0 2px 10px rgba(76, 59, 68, 0.12),
+        0 0 0 1px rgba(255, 255, 255, 0.8) inset;
+    }
+
+    .clean-mode-switch input:focus-visible + .clean-mode-track {
+      outline: 2px solid rgba(199, 155, 107, 0.55);
+      outline-offset: 3px;
+    }
+
+    .clean-mode-label {
+      font-size: 0.92rem;
+      font-weight: 600;
+      color: var(--text);
+      letter-spacing: 0.01em;
+    }
+
+    .clean-mode-hint {
+      margin: 0;
+      font-size: 0.78rem;
+      color: var(--muted);
+      line-height: 1.45;
+      width: 100%;
+      flex-basis: 100%;
+    }
+
     .status {
       font-size: 0.9rem;
       min-height: 1.4em;
@@ -626,6 +721,16 @@
           match your taste. Add favorites from results or the favorites page.
         </p>
       </div>
+      <div class="clean-mode-row">
+        <label class="clean-mode-switch" for="cleanMode">
+          <input type="checkbox" id="cleanMode" />
+          <span class="clean-mode-track" aria-hidden="true"><span class="clean-mode-knob"></span></span>
+          <span class="clean-mode-label" data-i18n="form.cleanMode">Clean Mode</span>
+        </label>
+        <p class="clean-mode-hint" data-i18n="form.cleanModeHint">
+          When on, recommendations favor clean or radio-edit versions only (no explicit tracks).
+        </p>
+      </div>
       <div class="row">
         <button type="button" id="submit" data-i18n="form.submit">Get recommendations</button>
         <button type="button" class="btn-secondary" id="randomPrompt" aria-label="Fill with a random playlist idea" data-i18n="form.surprise" data-i18n-aria-label="form.surpriseAria">
@@ -661,6 +766,7 @@
     const promptEl = document.getElementById("prompt");
     const submitBtn = document.getElementById("submit");
     const randomBtn = document.getElementById("randomPrompt");
+    const cleanModeEl = document.getElementById("cleanMode");
     const statusToastEl = document.getElementById("statusToast");
     const statusTextEl = document.getElementById("statusText");
     const statusToastCloseEl = document.getElementById("statusToastClose");
@@ -685,6 +791,8 @@
         "form.promptPlaceholder": "e.g. Late-night synth-pop with dreamy vocals, similar to The Weeknd but more upbeat…",
         "form.useFavoritesPrefix": "Use my saved favorites as taste context",
         "form.useFavoritesHint": "When checked, your ♥ list (title and artist, up to 40 tracks) is sent with your prompt so picks match your taste. Add favorites from results or the favorites page.",
+        "form.cleanMode": "Clean Mode",
+        "form.cleanModeHint": "When on, recommendations favor clean or radio-edit versions only (no explicit tracks).",
         "form.submit": "Get recommendations",
         "form.surprise": "Surprise me",
         "form.surpriseAria": "Fill with a random playlist idea",
@@ -754,6 +862,8 @@
         "form.promptPlaceholder": "p. ej. synth-pop nocturno con voces soñadoras, similar a The Weeknd pero más animado…",
         "form.useFavoritesPrefix": "Usar mis favoritas guardadas como contexto de gusto",
         "form.useFavoritesHint": "Cuando está activado, tu lista de ♥ (título y artista, hasta 40 canciones) se envía con tu prompt para que las recomendaciones se adapten a tu gusto. Agrega favoritas desde resultados o desde la página de guardadas.",
+        "form.cleanMode": "Modo limpio",
+        "form.cleanModeHint": "Si está activado, las recomendaciones priorizan versiones limpias o de radio (sin canciones explícitas).",
         "form.submit": "Obtener recomendaciones",
         "form.surprise": "Sorpréndeme",
         "form.surpriseAria": "Rellenar con una idea de playlist aleatoria",
@@ -1076,6 +1186,10 @@
         title: String(f.title || ""),
         artist: String(f.artist || ""),
       }));
+    }
+
+    function cleanModeActive() {
+      return Boolean(cleanModeEl && cleanModeEl.checked);
     }
 
     function updateHeartButtons() {
@@ -1473,6 +1587,9 @@
       submitBtn.disabled = loading;
       randomBtn.disabled = loading;
       promptEl.disabled = loading;
+      if (cleanModeEl) {
+        cleanModeEl.disabled = loading;
+      }
       gridEl.querySelectorAll(".btn-redo").forEach((b) => {
         b.disabled = loading;
       });
@@ -1573,6 +1690,9 @@
         if (favs.length) {
           body.favorites = favs;
         }
+        if (cleanModeActive()) {
+          body.clean_mode = true;
+        }
         const res = await fetch("/api/recommend", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -1625,6 +1745,9 @@
         const favs = favoritesForApi();
         if (favs.length) {
           body.favorites = favs;
+        }
+        if (cleanModeActive()) {
+          body.clean_mode = true;
         }
         const res = await fetch("/api/recommend/similar", {
           method: "POST",
@@ -1688,6 +1811,9 @@
         const redoFavs = favoritesForApi();
         if (redoFavs.length) {
           redoBody.favorites = redoFavs;
+        }
+        if (cleanModeActive()) {
+          redoBody.clean_mode = true;
         }
         const res = await fetch("/api/recommend/one", {
           method: "POST",

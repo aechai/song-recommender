@@ -17,6 +17,7 @@
       --accent: #c79b6b;
       --accent-soft: #d8b89b;
       --accent-dim: rgba(199, 155, 107, 0.2);
+      --sage: #9bb8a5;
       --danger: #d47386;
       --radius: 24px;
       --shadow: 0 22px 42px rgba(181, 139, 158, 0.18);
@@ -232,6 +233,107 @@
       font-size: 0.8rem;
       color: var(--muted);
       line-height: 1.4;
+    }
+
+    .clean-mode-switch {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.7rem;
+      cursor: pointer;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .clean-mode-switch input {
+      position: absolute;
+      opacity: 0;
+      width: 0;
+      height: 0;
+      pointer-events: none;
+    }
+
+    .clean-mode-track {
+      position: relative;
+      flex-shrink: 0;
+      width: 2.85rem;
+      height: 1.55rem;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.55);
+      border: 1px solid rgba(199, 155, 107, 0.35);
+      box-shadow:
+        inset 0 1px 4px rgba(181, 139, 158, 0.12),
+        0 4px 12px rgba(181, 139, 158, 0.08);
+      transition:
+        background 0.22s ease,
+        border-color 0.22s ease,
+        box-shadow 0.22s ease;
+    }
+
+    .clean-mode-knob {
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: calc(1.55rem - 4px);
+      height: calc(1.55rem - 4px);
+      border-radius: 50%;
+      background: linear-gradient(160deg, #fffefb 0%, #f3e8df 100%);
+      box-shadow:
+        0 2px 6px rgba(76, 59, 68, 0.14),
+        0 0 0 1px rgba(255, 255, 255, 0.65) inset;
+      transition: transform 0.24s cubic-bezier(0.34, 1.2, 0.64, 1), box-shadow 0.22s ease;
+    }
+
+    .clean-mode-switch input:checked + .clean-mode-track {
+      background: linear-gradient(135deg, #c5dcc8 0%, var(--sage) 55%, #8aa896 100%);
+      border-color: rgba(124, 156, 138, 0.55);
+      box-shadow:
+        inset 0 1px 3px rgba(255, 255, 255, 0.35),
+        0 6px 18px rgba(155, 184, 165, 0.38);
+    }
+
+    .clean-mode-switch input:checked + .clean-mode-track .clean-mode-knob {
+      transform: translateX(1.28rem);
+      background: linear-gradient(160deg, #fff 0%, #faf6f2 100%);
+      box-shadow:
+        0 2px 10px rgba(76, 59, 68, 0.12),
+        0 0 0 1px rgba(255, 255, 255, 0.8) inset;
+    }
+
+    .clean-mode-switch input:focus-visible + .clean-mode-track {
+      outline: 2px solid rgba(199, 155, 107, 0.55);
+      outline-offset: 3px;
+    }
+
+    .clean-mode-label {
+      font-size: 0.92rem;
+      font-weight: 600;
+      color: var(--text);
+      letter-spacing: 0.01em;
+    }
+
+    .clean-mode-hint {
+      margin: 0;
+      font-size: 0.78rem;
+      color: var(--muted);
+      line-height: 1.45;
+      width: 100%;
+      flex-basis: 100%;
+    }
+
+    .quiz-actions {
+      margin-top: 1.1rem;
+    }
+
+    .quiz-actions-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.85rem 1.25rem;
+    }
+
+    .quiz-actions .clean-mode-hint {
+      margin-top: 0.55rem;
+      max-width: 42rem;
     }
 
     .status {
@@ -712,8 +814,18 @@
           </p>
         </div>
 
-        <div class="row" style="margin-top: 1.1rem">
-          <button type="button" id="findPersona" data-i18n="quiz.findPersona">Find My Persona</button>
+        <div class="quiz-actions">
+          <div class="quiz-actions-row">
+            <button type="button" id="findPersona" data-i18n="quiz.findPersona">Find My Persona</button>
+            <label class="clean-mode-switch" for="quizCleanMode">
+              <input type="checkbox" id="quizCleanMode" />
+              <span class="clean-mode-track" aria-hidden="true"><span class="clean-mode-knob"></span></span>
+              <span class="clean-mode-label" data-i18n="q.cleanMode">Clean Mode</span>
+            </label>
+          </div>
+          <p class="clean-mode-hint" data-i18n="q.cleanModeHint">
+            When on, recommendations favor clean or radio-edit versions only (no explicit tracks).
+          </p>
         </div>
         <p class="hint" id="quizHint" style="margin-top: 0.75rem; margin-bottom: 0" data-i18n="quiz.hint">Answers are combined into one line starting with <code style="font-family: inherit; opacity: 0.9">Quiz Results:</code> and sent to <code style="font-family: inherit; opacity: 0.9">/api/recommend</code>.</p>
     </section>
@@ -751,6 +863,7 @@
     const statusEl = statusTextEl;
     const gridEl = document.getElementById("grid");
     const findPersonaBtn = document.getElementById("findPersona");
+    const cleanModeEl = document.getElementById("quizCleanMode");
     const personaBannerEl = document.getElementById("personaBanner");
     const personaNameEl = document.getElementById("personaName");
     const favoritesNavCountEl = document.getElementById("favoritesNavCount");
@@ -769,6 +882,7 @@
         "qo.lyric.storytelling": "Storytelling — clear narratives and emotions", "qo.lyric.abstract": "Abstract / poetic — open to interpretation", "qo.lyric.vibe": "Vibe over lyrics — the sound leads", "qo.lyric.mix": "A mix of lyrical styles is fine",
         "qo.novelty.classics": "Classics, throwbacks, and proven favorites", "qo.novelty.new": "New releases, trending, and the cutting edge", "qo.novelty.mix": "A balanced mix of old and new", "qo.novelty.surprise": "Surprise me (no strong rule)",
         "q.useFavorites": "Use my saved favorites as taste context", "q.useFavoritesHint": "When checked, your ♥ list (title and artist, up to 40 tracks) is sent with your quiz so picks match your taste.",
+        "q.cleanMode": "Clean Mode", "q.cleanModeHint": "When on, recommendations favor clean or radio-edit versions only (no explicit tracks).",
         "quiz.findPersona": "Find My Persona", "quiz.hint": "Answers are combined into one line starting with <code style=\"font-family: inherit; opacity: 0.9\">Quiz Results:</code> and sent to <code style=\"font-family: inherit; opacity: 0.9\">/api/recommend</code>.",
         "persona.label": "Your musical persona", "playlist.preview": "Preview playlist", "playlist.prev": "Previous track", "playlist.next": "Next track", "playlist.stop": "Stop playback", "playlist.save": "Save playlist", "playlist.export": "Export to YouTube", "instruction.recommendSpanish": "Provide the song descriptions and persona name in Spanish.",
         "card.emptyResults": "No songs returned. Try a different prompt.", "card.track": "Track {{index}}", "card.addFav": "Add to favorites", "card.removeFav": "Remove from favorites",
@@ -789,6 +903,7 @@
         "qo.lyric.storytelling": "Narrativa — historias claras y emoción", "qo.lyric.abstract": "Abstracto / poético — abierto a interpretación", "qo.lyric.vibe": "Vibra sobre letra — manda el sonido", "qo.lyric.mix": "Me sirve una mezcla de estilos líricos",
         "qo.novelty.classics": "Clásicos, throwbacks y favoritas probadas", "qo.novelty.new": "Lanzamientos nuevos, tendencias y vanguardia", "qo.novelty.mix": "Una mezcla equilibrada de viejo y nuevo", "qo.novelty.surprise": "Sorpréndeme (sin regla fija)",
         "q.useFavorites": "Usar mis favoritas guardadas como contexto de gusto", "q.useFavoritesHint": "Cuando se activa, tu lista de ♥ (título y artista, hasta 40 canciones) se envía con el quiz para que las recomendaciones se adapten a tu gusto.",
+        "q.cleanMode": "Modo limpio", "q.cleanModeHint": "Si está activado, las recomendaciones priorizan versiones limpias o de radio (sin canciones explícitas).",
         "quiz.findPersona": "Encuentra mi persona", "quiz.hint": "Las respuestas se combinan en una línea que empieza con <code style=\"font-family: inherit; opacity: 0.9\">Quiz Results:</code> y se envía a <code style=\"font-family: inherit; opacity: 0.9\">/api/recommend</code>.",
         "persona.label": "Tu persona musical", "playlist.preview": "Previsualizar playlist", "playlist.prev": "Pista anterior", "playlist.next": "Siguiente pista", "playlist.stop": "Detener reproducción", "playlist.save": "Guardar playlist", "playlist.export": "Exportar a YouTube", "instruction.recommendSpanish": "Provide the song descriptions and persona name in Spanish.",
         "card.emptyResults": "No se devolvieron canciones. Prueba con otro prompt.", "card.track": "Pista {{index}}", "card.addFav": "Añadir a guardadas", "card.removeFav": "Quitar de guardadas",
@@ -1073,6 +1188,10 @@
         title: String(f.title || ""),
         artist: String(f.artist || ""),
       }));
+    }
+
+    function cleanModeActive() {
+      return Boolean(cleanModeEl && cleanModeEl.checked);
     }
 
     function updateHeartButtons() {
@@ -1389,6 +1508,7 @@
     function setUiBusy(loading, busyLabel) {
       formBusy = loading;
       if (findPersonaBtn) findPersonaBtn.disabled = loading;
+      if (cleanModeEl) cleanModeEl.disabled = loading;
       document.querySelectorAll(".quiz-select").forEach((el) => {
         el.disabled = loading;
       });
@@ -1549,6 +1669,9 @@
         if (favs.length) {
           body.favorites = favs;
         }
+        if (cleanModeActive()) {
+          body.clean_mode = true;
+        }
         const res = await fetch("/api/recommend", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -1605,6 +1728,9 @@
         const favs = favoritesForApi();
         if (favs.length) {
           body.favorites = favs;
+        }
+        if (cleanModeActive()) {
+          body.clean_mode = true;
         }
         const res = await fetch("/api/recommend/similar", {
           method: "POST",
@@ -1669,6 +1795,9 @@
         const redoFavs = favoritesForApi();
         if (redoFavs.length) {
           redoBody.favorites = redoFavs;
+        }
+        if (cleanModeActive()) {
+          redoBody.clean_mode = true;
         }
         const res = await fetch("/api/recommend/one", {
           method: "POST",

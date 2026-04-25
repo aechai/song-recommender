@@ -353,3 +353,28 @@ Requirements:
 - **No behavior regressions**: JavaScript logic and API contracts remain intact.
 - **Persona polish + localization**: Persona presentation is visually emphasized and fully translated on EN/ES switches (label + persona name).
 
+---
+
+## Prompt 11 — Explicit content filter (“Clean Mode”)
+
+### Prompt
+Add an **Explicit Content Filter** / **Clean Mode** toggle.
+
+**Frontend (`index.html`):**
+- Add a stylish toggle (Aura aesthetic: soft rose-gold / sage) labeled **Clean Mode** near the search / describe actions.
+- Capture toggle state and send it to the **`/api/recommend`** call (as a JSON field).
+
+**Backend (`main.py`):**
+- Accept the flag on recommendation requests.
+- When the filter is active, extend the **system** prompt with a strict instruction, for example:
+  - **CRITICAL:** Only suggest **“Clean”** or **“Radio Edit”** versions of tracks; do not recommend songs with explicit lyrics or parental-advisory warnings.
+
+Also wire the same flag for **redo** and **more-like-this** flows where applicable, and mirror the UI on **`/personality-quiz`** (e.g. beside **Find My Persona**) with EN/ES copy.
+
+### Effects
+- **UI**: `index.html` includes a **Clean Mode** row/toggle (Aura styling) and short hint; toggle is disabled while requests are in flight.
+- **UI (quiz)**: `personality-quiz.html` includes the same control (placed with the primary quiz CTA) and localized strings (`q.cleanMode`, `q.cleanModeHint`).
+- **Client payload**: When enabled, the client sends **`clean_mode: true`** on **`POST /api/recommend`**, **`POST /api/recommend/similar`**, and **`POST /api/recommend/one`**.
+- **Backend**: Pydantic models include optional **`clean_mode`** (default `false`); when `true`, the system message is suffixed with the clean/radio-edit **CRITICAL** rule for main recommend (including `Quiz Results:` quiz path), similar-songs, and single-track replace.
+- **Docs**: `README.md` and this file describe the feature, API field, and limitation (prompt-only steering, not catalog-verified).
+
